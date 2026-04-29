@@ -14,7 +14,7 @@ inputs:
     required: false
     default: "yes"
   pdf-generator:
-    description: "'prince' to generate PDFs with Prince XML, or 'no' to skip PDF generation"
+    description: "'prince' to generate PDFs with Prince XML, 'weasyprint' to generate PDFs with WeasyPrint, or 'no' to skip PDF generation"
     required: false
     default: "no"
   prince-version:
@@ -33,6 +33,58 @@ inputs:
     description: "PRM-in-XML catalog version"
     required: false
     default: "103"
+  create-contents:
+    description: "PRM-in-XML parameter: 'yes' or 'no'; empty uses the tool default"
+    required: false
+    default: ""
+  create-body:
+    description: "PRM-in-XML parameter: 'yes' or 'no'; empty uses the tool default"
+    required: false
+    default: ""
+  create-contents-target:
+    description: "PRM-in-XML parameter: target name, 'yes', or 'no'; empty uses the tool default"
+    required: false
+    default: ""
+  position-with-names:
+    description: "PRM-in-XML parameter: 'yes' or 'no'; empty uses the tool default"
+    required: false
+    default: ""
+  css-base:
+    description: "PRM-in-XML parameter: style name or 'none'; empty uses the tool default"
+    required: false
+    default: ""
+  css-variant:
+    description: "PRM-in-XML parameter: style variant names, or 'none'; empty uses the tool default"
+    required: false
+    default: ""
+  css-file:
+    description: "PRM-in-XML parameter: relative stylesheet filename, or 'none'; empty uses the tool default"
+    required: false
+    default: ""
+  override-chapter-number:
+    description: "PRM-in-XML parameter: chapter number; empty uses the tool default"
+    required: false
+    default: ""
+  override-docgroup:
+    description: "PRM-in-XML parameter: document group name; empty uses the tool default"
+    required: false
+    default: ""
+  override-docgroup-part:
+    description: "PRM-in-XML parameter: document group part; empty uses the tool default"
+    required: false
+    default: ""
+  edgeindex:
+    description: "PRM-in-XML parameter: edge index number; empty uses the tool default"
+    required: false
+    default: ""
+  edgeindex-max:
+    description: "PRM-in-XML parameter: number of edge index spaces; empty uses the tool default"
+    required: false
+    default: ""
+  front-matter:
+    description: "PRM-in-XML parameter: front matter type, or 'no'; empty uses the tool default"
+    required: false
+    default: ""
 
 runs:
   using: "composite"
@@ -55,6 +107,19 @@ runs:
         INPUT_PDF_GENERATOR: ${{ inputs.pdf-generator }}
         INPUT_FORMAT: ${{ inputs.format }}
         INPUT_CATALOG: ${{ inputs.catalog }}
+        INPUT_CREATE_CONTENTS: ${{ inputs.create-contents }}
+        INPUT_CREATE_BODY: ${{ inputs.create-body }}
+        INPUT_CREATE_CONTENTS_TARGET: ${{ inputs.create-contents-target }}
+        INPUT_POSITION_WITH_NAMES: ${{ inputs.position-with-names }}
+        INPUT_CSS_BASE: ${{ inputs.css-base }}
+        INPUT_CSS_VARIANT: ${{ inputs.css-variant }}
+        INPUT_CSS_FILE: ${{ inputs.css-file }}
+        INPUT_OVERRIDE_CHAPTER_NUMBER: ${{ inputs.override-chapter-number }}
+        INPUT_OVERRIDE_DOCGROUP: ${{ inputs.override-docgroup }}
+        INPUT_OVERRIDE_DOCGROUP_PART: ${{ inputs.override-docgroup-part }}
+        INPUT_EDGEINDEX: ${{ inputs.edgeindex }}
+        INPUT_EDGEINDEX_MAX: ${{ inputs.edgeindex-max }}
+        INPUT_FRONT_MATTER: ${{ inputs.front-matter }}
 
 branding:
   icon: "book-open"

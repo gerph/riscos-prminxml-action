@@ -22,7 +22,7 @@ jobs:
           output: output/html
 
       - name: Upload generated documentation
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: prminxml-html
           path: output/html
@@ -35,7 +35,35 @@ jobs:
           pdf-generator: prince
 
       - name: Upload generated PDF documentation
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: prminxml-pdf
           path: output/pdf
+
+      - name: Build modern PRM-in-XML documentation with Prince PDF
+        uses: ./
+        with:
+          files: rtc.xml
+          output: output/modern
+          pdf-generator: prince
+          css-variant: prm prm-modern body-notosans heading-saira webfont-notosans webfont-saira
+
+      - name: Upload modern documentation
+        uses: actions/upload-artifact@v7
+        with:
+          name: modern
+          path: output/modern
+
+      - name: Build PRM-in-XML documentation with WeasyPrint PDF
+        uses: ./
+        with:
+          files: rtc.xml
+          output: output/weasyprint
+          pdf-generator: weasyprint
+          css-base: standard
+
+      - name: Upload generated WeasyPrint documentation
+        uses: actions/upload-artifact@v7
+        with:
+          name: prminxml-weasyprint
+          path: output/weasyprint

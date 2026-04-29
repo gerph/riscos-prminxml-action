@@ -5,7 +5,8 @@ GitHub Actions.
 
 This action obtains the PRM-in-XML tooling, installs the packages needed by
 the converter, lints your XML files, and writes generated documentation to an
-output directory. It can also generate PDFs with Prince XML when requested.
+output directory. It can also generate PDFs with Prince XML or WeasyPrint when
+requested.
 
 ## What it does
 
@@ -15,7 +16,7 @@ Your repository can contain one or more PRM-in-XML documents. This action:
 - Downloads the requested PRM-in-XML tool version.
 - Runs the PRM-in-XML lint process.
 - Generates output files, usually HTML and copied XML using `html5+xml`.
-- Optionally generates PDF files with Prince XML.
+- Optionally generates PDF files with Prince XML or WeasyPrint.
 
 ### How it does it
 
@@ -38,9 +39,9 @@ The action is intended for Linux GitHub-hosted runners such as
 `ubuntu-latest`. It installs packages with the system package manager, so the
 runner must allow normal GitHub Actions package installation.
 
-PDF output is only enabled when `pdf-generator` is set to `prince`. By doing
-that, you confirm that your use of Prince XML is covered by an appropriate
-licence.
+PDF output is only enabled when `pdf-generator` is set to `prince` or
+`weasyprint`. If you request Prince XML, you confirm that your use of Prince XML
+is covered by an appropriate licence.
 
 ## Usage
 
@@ -68,11 +69,24 @@ jobs:
 | `files` | Whitespace-separated list of PRM-in-XML files to read | Required |
 | `output` | Directory to write generated files to | Required |
 | `lint` | `yes` to lint and fail on errors, `no` to skip linting, or `quiet` to report lint errors without failing | `yes` |
-| `pdf-generator` | `prince` to generate PDFs with Prince XML, or `no` to skip PDF generation | `no` |
+| `pdf-generator` | `prince` to generate PDFs with Prince XML, `weasyprint` to generate PDFs with WeasyPrint, or `no` to skip PDF generation | `no` |
 | `prince-version` | `default` for the default Prince XML version, or a version number | `default` |
 | `version` | `default` for the default PRM-in-XML version, `local` to use an existing tool, or a version number | `default` |
 | `format` | PRM-in-XML output format, such as `html5+xml`, `html+xml`, `html5`, `html`, `stronghelp`, `command`, or `header` | `html5+xml` |
 | `catalog` | PRM-in-XML catalog version | `103` |
+| `create-contents` | `yes` or `no`; whether the contents part of the page is generated | Tool default |
+| `create-body` | `yes` or `no`; whether the main body of the page is generated | Tool default |
+| `create-contents-target` | `yes`, `no`, or a frame target name for contents links | Tool default |
+| `position-with-names` | `yes` or `no`; whether diagnostics use longer named paths | Tool default |
+| `css-base` | Built-in CSS style name, or `none` | Tool default |
+| `css-variant` | Additional CSS variant names separated by spaces, or `none` | Tool default |
+| `css-file` | Relative stylesheet filename, or `none` | Tool default |
+| `override-chapter-number` | Chapter number to include in titles | Tool default |
+| `override-docgroup` | Document group name override | Tool default |
+| `override-docgroup-part` | Document group part override | Tool default |
+| `edgeindex` | Edge index number to use | Tool default |
+| `edgeindex-max` | Number of edge index spaces | Tool default |
+| `front-matter` | Front matter type, or `no` | Tool default |
 
 ## Example
 
@@ -121,7 +135,7 @@ Use a whitespace-separated list for more than one document:
 
 ### PDF Generation
 
-To generate PDFs, request Prince XML explicitly:
+To generate PDFs with Prince XML, request it explicitly:
 
 ```yaml
 - name: Build documentation and PDFs
@@ -134,6 +148,39 @@ To generate PDFs, request Prince XML explicitly:
 
 The action first generates HTML, then runs Prince XML over the generated HTML
 files to create matching `.pdf` files in the same output directory.
+
+To generate PDFs with WeasyPrint instead:
+
+```yaml
+- name: Build documentation and PDFs with WeasyPrint
+  uses: gerph/riscos-prminxml-action@v1
+  with:
+    files: rtc.xml
+    output: output/html
+    pdf-generator: weasyprint
+```
+
+The action installs WeasyPrint dependencies, generates HTML, then processes the
+generated HTML files into matching `.pdf` files.
+
+### PRM-in-XML Parameters
+
+The action exposes common PRM-in-XML stylesheet parameters as optional inputs.
+When an input is empty, it is not passed to `riscos-prminxml`, so the tool
+performs its default operation.
+
+```yaml
+- name: Build documentation with custom styling
+  uses: gerph/riscos-prminxml-action@v1
+  with:
+    files: rtc.xml
+    output: output/html
+    css-base: standard
+    css-variant: prm-modern
+    override-docgroup: RISC OS Programmer's Reference Manuals
+    edgeindex: 1
+    edgeindex-max: 4
+```
 
 ### Lint Modes
 

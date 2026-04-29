@@ -176,12 +176,8 @@ install_prince_libraries() {
 }
 
 install_prince() {
-    if [ "$PDF_GENERATOR" = "no" ]; then
-        return
-    fi
     if [ "$PDF_GENERATOR" != "prince" ]; then
-        echo "Unsupported pdf-generator '${PDF_GENERATOR}'" >&2
-        exit 1
+        return
     fi
 
     if command -v prince >/dev/null 2>&1; then
@@ -241,9 +237,44 @@ install_prince() {
     prince --version >/dev/null
 }
 
+install_weasyprint() {
+    if [ "$PDF_GENERATOR" != "weasyprint" ]; then
+        return
+    fi
+
+    if command -v weasyprint >/dev/null 2>&1; then
+        return
+    fi
+
+    echo "+++ Obtaining WeasyPrint"
+    if [ "$SYSTEM" = "Linux" ] && command -v apt-get >/dev/null 2>&1; then
+        install_package weasyprint
+    elif [ "$SYSTEM" = "Linux" ] && command -v yum >/dev/null 2>&1; then
+        install_package weasyprint
+    else
+        echo "Cannot install WeasyPrint on ${SYSTEM}" >&2
+        exit 1
+    fi
+
+    weasyprint --version
+}
+
 detect_platform
 install_prminxml
-install_prince
+case "$PDF_GENERATOR" in
+    no)
+        ;;
+    prince)
+        install_prince
+        ;;
+    weasyprint)
+        install_weasyprint
+        ;;
+    *)
+        echo "Unsupported pdf-generator '${PDF_GENERATOR}'" >&2
+        exit 1
+        ;;
+esac
 
 echo
 echo "+++ Environment configured"
@@ -253,4 +284,6 @@ xmllint --version
 xsltproc --version
 if [ "$PDF_GENERATOR" = "prince" ]; then
     prince --version
+elif [ "$PDF_GENERATOR" = "weasyprint" ]; then
+    weasyprint --version
 fi
