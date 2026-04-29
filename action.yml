@@ -1,0 +1,61 @@
+name: "PRM-in-XML builder"
+description: "Build PRM-in-XML documentation into HTML and optionally PDF."
+author: Charles Ferguson
+
+inputs:
+  files:
+    description: "Whitespace-separated list of PRM-in-XML files to read"
+    required: true
+  output:
+    description: "Directory to write generated files to"
+    required: true
+  lint:
+    description: "'yes' to lint and fail on errors, 'no' to skip linting, or 'quiet' to report lint errors without failing"
+    required: false
+    default: "yes"
+  pdf-generator:
+    description: "'prince' to generate PDFs with Prince XML, or 'no' to skip PDF generation"
+    required: false
+    default: "no"
+  prince-version:
+    description: "'default' for the default Prince XML version, or a version number"
+    required: false
+    default: "default"
+  version:
+    description: "'default' for the default PRM-in-XML version, 'local' to use an existing tool, or a version number"
+    required: false
+    default: "default"
+  format:
+    description: "PRM-in-XML output format"
+    required: false
+    default: "html5+xml"
+  catalog:
+    description: "PRM-in-XML catalog version"
+    required: false
+    default: "103"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install PRM-in-XML prerequisites
+      run: '"$GITHUB_ACTION_PATH/scripts/install-prminxml.sh"'
+      shell: bash
+      env:
+        INPUT_PDF_GENERATOR: ${{ inputs.pdf-generator }}
+        INPUT_PRINCE_VERSION: ${{ inputs.prince-version }}
+        INPUT_VERSION: ${{ inputs.version }}
+
+    - name: Build PRM-in-XML files
+      run: '"$GITHUB_ACTION_PATH/scripts/build-prminxml.sh"'
+      shell: bash
+      env:
+        INPUT_FILES: ${{ inputs.files }}
+        INPUT_OUTPUT: ${{ inputs.output }}
+        INPUT_LINT: ${{ inputs.lint }}
+        INPUT_PDF_GENERATOR: ${{ inputs.pdf-generator }}
+        INPUT_FORMAT: ${{ inputs.format }}
+        INPUT_CATALOG: ${{ inputs.catalog }}
+
+branding:
+  icon: "book-open"
+  color: "green"

@@ -1,0 +1,173 @@
+<?xml version="1.0"?>
+<!DOCTYPE riscos-prm PUBLIC "-//Gerph//DTD PRM documentation 1.02//EN"
+                            "http://gerph.org/dtd/102/prm.dtd">
+
+<riscos-prm>
+<chapter title="Real Time Clock">
+<section title="Introduction">
+
+<p>
+The Real Time Clock has previously been handled by the Kernel. With Kernel
+8.64 and later the clock is managed by the RTC module. This communicates
+with the hardware driver through a vector (RTCV) whose default claimant
+is the RTCHW module. The RTCHW module provides implementations for the
+RiscPC, A7000-series, RiscStation, and A9.
+</p>
+
+<p>
+The RTC module provides the Kernel SWI OS_ResyncTime and all the OS_Word 14
+and 15 operations to control the clock. A new reason code has been added to
+<reference type='swi' name='OS_Word' reason='15'/>
+for setting the clock's 5 byte time directly.
+</p>
+
+<p>
+A separate section describes the RTCV vector.
+</p>
+</section>
+
+
+<section title="Service calls">
+
+<service-definition name="RTCSynchronised"
+                    number="DD"
+                    description="Real time clock has been synchronised">
+<entry>
+ <register-use number="1">&hex;DD (reason code)</register-use>
+</entry>
+
+<exit>
+ <register-use number="1" state="preserved" />
+</exit>
+
+<use>
+
+<p>This service is issued by the RTC module to inform clients that the software
+and hardware clocks have been synchronised. It may indicate that an
+indeterminate period of inactivity has taken place, such as after returning
+from a suspend state. Where possible, timed events should be synchronised
+and where necessary appropriate action taken to ensure that queued events
+take place.
+</p>
+
+<p>This service should never be claimed.</p>
+
+</use>
+
+<related>
+    <reference type="swi" name="OS_ResyncTime" />
+</related>
+
+</service-definition>
+</section>
+
+
+<section title="SWI calls">
+
+<swi-definition name="OS_Word"
+                number="7"
+                reason="15, 5"
+                reasonname="SetUTCTime"
+                description="Set real time clock to UTC time as a 5-byte value"
+                irqs="undefined"
+                fiqs="enabled"
+                processor-mode="SVC"
+                re-entrant="no">
+
+<entry>
+ <register-use number="0">15 (reason code)</register-use>
+ <register-use number="1"><p>Pointer to time values:</p>
+  <p>
+  <offset-table>
+   <offset number="0">5 (sub-reason code)</offset>
+   <offset number="1">5 bytes of time value as centiseconds since 1900 in UTC</offset>
+  </offset-table>
+  </p>
+ </register-use>
+</entry>
+<exit>
+</exit>
+
+<use>
+<p>
+This call is used to set the Real Time Clock to a time value as a UTC time.
+It avoids the requirement to convert a UTC time to a locale-specific time
+string first.
+</p>
+
+<p>
+This call was new to RISC OS 4.
+</p>
+</use>
+
+<related>
+</related>
+
+</swi-definition>
+
+<swi-definition name="OS_ResyncTime"
+                number="6C"
+                description="Synchronisation operations for RTC"
+                irqs="undefined"
+                fiqs="enabled"
+                processor-mode="SVC"
+                re-entrant="no">
+
+<entry>
+ <register-use number="0"><p>Reason code:</p>
+  <value-table>
+   <value number="0">Synchronise with hardware clock</value>
+   <value number="other">Reserved</value>
+  </value-table>
+ </register-use>
+</entry>
+<exit>
+</exit>
+
+<use>
+<p>
+This SWI is used to cause the software clock to be resynchronised with the
+hardware clock, where available. When changed, a service call
+<reference type="service" name="RTCSynchronised" /> will be issued.
+</p>
+
+<p>
+This call was new to RISC OS 4.
+</p>
+</use>
+
+<related>
+    <reference type="service" name="RTCSynchronised" />
+</related>
+
+</swi-definition>
+</section>
+
+</chapter>
+
+<!-- MetaData -->
+<meta>
+ <maintainer>
+  <email name="Gerph" address="gerph@gerph.org" />
+ </maintainer>
+ <disclaimer>
+    <p>
+        &copy; Gerph, 2021.
+    </p>
+ </disclaimer>
+
+ <history>
+  <revision number="1" author="Gerph" date="2006" title="Initial version">
+    <change>Released as RISC OS Select documentation.</change>
+  </revision>
+  <revision number="2" author="Gerph" date="30 Dec 2021" title="PRM-in-XML conversion">
+    <change>Created from original Select documentation.</change>
+  </revision>
+ </history>
+
+ <related>
+    <reference type='link' href="http://www.riscos.com/support/developers/riscos6/time/rtc.html" />
+    <reference type='link' href="http://www.riscos.com/support/developers/riscos6/time/osword15.html" />
+ </related>
+</meta>
+</riscos-prm>
