@@ -73,6 +73,7 @@ jobs:
 | `prince-version` | `default` for the default Prince XML version, or a version number | `default` |
 | `version` | `default` for the default PRM-in-XML version, `local` to use an existing tool, or a version number | `default` |
 | `format` | PRM-in-XML output format, such as `html5+xml`, `html+xml`, `html5`, `html`, `index`, `stronghelp`, `command`, or `header` | `html5+xml` |
+| `style` | Style preset: `none`, `legacy`, `prm`, `prm-ro2`, or `prm-modern` | `none` |
 | `catalog` | PRM-in-XML catalog version | `103` |
 | `log-directory` | Directory for PRM-in-XML log files; empty omits `-L` | Tool default |
 | `create-contents` | `yes` or `no`; whether the contents part of the page is generated | Tool default |
@@ -164,6 +165,32 @@ To generate PDFs with WeasyPrint instead:
 The action installs WeasyPrint dependencies, generates HTML, then processes the
 generated HTML files into matching `.pdf` files.
 
+### Style Presets
+
+The `style` input applies common PRM-in-XML styling presets before the document
+is generated.
+
+```yaml
+- name: Build modern PRM-style documentation
+  uses: gerph/riscos-prminxml-action@v1
+  with:
+    files: rtc.xml
+    output: output/modern
+    style: prm-modern
+```
+
+The available styles are:
+
+| Style | Description | Effect |
+|---|---|---|
+| `legacy` | Simple HTML, for older browsers | Sets `format` to `html+xml` |
+| `prm` | A style which is closest to the RISC OS 3 PRM style | Prefixes `css-variant` with `prm body-fraunces heading-raleway webfont-fraunces webfont-raleway` |
+| `prm-ro2` | A style which is similar to that of the RISC OS 2 PRMs | Prefixes `css-variant` with `prm prm-ro2 body-fraunces heading-raleway webfont-fraunces webfont-raleway` |
+| `prm-modern` | A modern style for the PRMs | Prefixes `css-variant` with `prm prm-modern body-notosans heading-saira webfont-notosans webfont-saira` |
+
+If you also supply `css-variant`, the preset variants are placed before your
+extra variants.
+
 ### Indexed Documentation
 
 For indexed document sets, set `format: index` and supply exactly one file in
@@ -221,7 +248,7 @@ performs its default operation.
     files: rtc.xml
     output: output/html
     css-base: standard
-    css-variant: prm-modern
+    style: prm-modern
     override-docgroup: RISC OS Programmer's Reference Manuals
     edgeindex: 1
     edgeindex-max: 4

@@ -6,6 +6,7 @@ OUTPUT_DIR="${INPUT_OUTPUT:-}"
 LINT_MODE="${INPUT_LINT:-yes}"
 PDF_GENERATOR="${INPUT_PDF_GENERATOR:-no}"
 FORMAT="${INPUT_FORMAT:-html5+xml}"
+STYLE="${INPUT_STYLE:-none}"
 CATALOG="${INPUT_CATALOG:-103}"
 LOG_DIRECTORY="${INPUT_LOG_DIRECTORY:-}"
 CREATE_CONTENTS="${INPUT_CREATE_CONTENTS:-}"
@@ -44,6 +45,37 @@ case "$PDF_GENERATOR" in
     prince|weasyprint|no) ;;
     *)
         echo "Unsupported pdf-generator '${PDF_GENERATOR}'." >&2
+        exit 1
+        ;;
+esac
+
+prefix_css_variant() {
+    variant_prefix="$1"
+
+    if [ -n "$CSS_VARIANT" ]; then
+        CSS_VARIANT="${variant_prefix} ${CSS_VARIANT}"
+    else
+        CSS_VARIANT="$variant_prefix"
+    fi
+}
+
+case "$STYLE" in
+    none|"")
+        ;;
+    legacy)
+        FORMAT="html+xml"
+        ;;
+    prm)
+        prefix_css_variant "prm body-fraunces heading-raleway webfont-fraunces webfont-raleway"
+        ;;
+    prm-ro2)
+        prefix_css_variant "prm prm-ro2 body-fraunces heading-raleway webfont-fraunces webfont-raleway"
+        ;;
+    prm-modern)
+        prefix_css_variant "prm prm-modern body-notosans heading-saira webfont-notosans webfont-saira"
+        ;;
+    *)
+        echo "Unsupported style '${STYLE}'." >&2
         exit 1
         ;;
 esac

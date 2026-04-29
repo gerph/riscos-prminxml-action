@@ -29,6 +29,10 @@ inputs:
     description: "PRM-in-XML output format"
     required: false
     default: "html5+xml"
+  style:
+    description: "Style preset: 'none', 'legacy', 'prm', 'prm-ro2', or 'prm-modern'"
+    required: false
+    default: "none"
   catalog:
     description: "PRM-in-XML catalog version"
     required: false
@@ -110,6 +114,7 @@ runs:
         INPUT_LINT: ${{ inputs.lint }}
         INPUT_PDF_GENERATOR: ${{ inputs.pdf-generator }}
         INPUT_FORMAT: ${{ inputs.format }}
+        INPUT_STYLE: ${{ inputs.style }}
         INPUT_CATALOG: ${{ inputs.catalog }}
         INPUT_LOG_DIRECTORY: ${{ inputs.log-directory }}
         INPUT_CREATE_CONTENTS: ${{ inputs.create-contents }}

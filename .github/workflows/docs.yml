@@ -46,7 +46,7 @@ jobs:
           files: rtc.xml
           output: output/modern
           pdf-generator: prince
-          css-variant: prm prm-modern body-notosans heading-saira webfont-notosans webfont-saira
+          style: prm-modern
 
       - name: Upload modern documentation
         uses: actions/upload-artifact@v7
