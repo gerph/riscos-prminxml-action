@@ -1,0 +1,422 @@
+<?xml version="1.0"?>
+<!DOCTYPE riscos-prm PUBLIC "-//Gerph//DTD PRM documentation 1.02//EN"
+                            "http://www.movspclr.co.uk/dtd/102/prm.dtd">
+
+<riscos-prm>
+<chapter title="The MimeMap module">
+
+<section title="Introduction">
+<p>
+In order to determine the operations which can be performed on data, a
+system of 'typing' is used. On different operating systems and environments,
+different typing systems are employed:
+</p>
+
+<p>
+<list>
+  <item><p>Under RISC OS, the typing system is known as 'file types' and is
+determined by numeric identifiers (the filetype of an object) in strict
+range (0-4095).</p></item>
+
+  <item><p>Under DOS and Windows-like systems, the type system is known as an
+'file extension' (sometimes known as a 'dot extension') and is determined by
+a string - traditionally of three characters - appended to the
+filename.</p></item>
+
+  <item><p>Under unix-like systems, the type system varies but most commonly a
+similar system to that employed by DOS and Windows is used, or a system
+based on the content of the file.</p></item>
+
+  <item><p>On Apple machines, the type is a fixed length binary identifier (8
+bytes), split into two fields (4 bytes each) - the vendor identifier and the
+file type.</p></item>
+
+</list>
+</p>
+
+<p>With this diverse selection of type systems in use and in order to try to
+standardise the manner in which such types are identified, a system of
+'media types' (also known as the 'content type') was developed. This is
+colloqially known as the 'MIME type', from its use in the most widespread
+use of its application, Multipurpose Internet Mail Extensions. This media
+type categorises the data by category, providing a number of general
+categories into which data falls (for example, text or video). </p>
+
+<p>The MimeMap module provides a central service for mapping between most
+of the types available. Of those described above, the MimeMap module does
+not presently cater for file identification by its contents.</p>
+
+</section>
+
+<section title="Overview">
+<p>
+When the module is initialised (either on being loaded, or during boot up)
+it reads the file <reference type="sysvar" name="Inet$MimeMappings" /> and
+stores the parsed file internally. If the system variable is changed, or the
+module is explicitly requested, the old version will be discarded and the
+file reparsed. </p>
+
+<p>
+The MimeMap module can handle 5 different file typing schemes:
+</p>
+<p>
+<list>
+  <item><p>RISC OS file type by number, eg &hex;FFF</p></item>
+  <item><p>RISC OS file type by name, eg Text</p></item>
+  <item><p>Media type string, eg text/plain</p></item>
+  <item><p>File extension string, eg .txt</p></item>
+  <item><p>Mac type/creator pair, eg "ttxtTEXT"</p></item>
+</list>
+</p>
+
+<p>
+Any type can be converted to any other type by the module should such a
+mapping exist in the file. Dependant on the settings in the MimeMap
+configuration, certain conversions may not be possible. For some of the
+conversions, wildcards (fields identifying multiple potential matches) may
+be available.
+</p>
+
+<subsection title="Using the module">
+
+<p>
+In order to ensure that type conversion is performed in a consistent and
+maintainable manner, it is recommended that type conversions are - whereever
+possible - performed through the MimeMap module. Typical applications which
+would require translations to be performed would be network file transfers
+(for example remote filing systems, FTP or HTTP transfers), non-native
+hardware transfers (for example CD-ROM data, floppy discs), and collated
+file processing (for example MIME format messages such as email).
+</p>
+
+<p>As supplied, the RISC OS filing systems DOSFS and CDFS support the use of the MimeMap module.</p>
+
+</subsection>
+
+</section>
+
+<section title="Technical details">
+
+<subsection title="Type formats">
+<p>Because the types supported by the MimeMap module are represented in different ways,
+a 'type format' is used to distinguish between each of the types in SWI calls.
+<value-table head-number="Value" head-name="Name" head-value="Meaning">
+ <value number="0" name="MMM_TYPE_RISCOS">RISC OS file type passed as an 32
+ bit number</value>
+
+ <value number="1" name="MMM_TYPE_RISCOS_STRING">RISC OS file type passed as
+ a pointer to a zero terminated string</value>
+
+ <value number="2" name="MMM_TYPE_MIME">MIME content type passed as a
+ pointer to a zero terminated string</value>
+
+ <value number="3" name="MMM_TYPE_DOT_EXTN">File extension (without the
+ preceeding period) as a pointer to a zero terminated string</value>
+
+ <value number="4" name="MMM_TYPE_MAC">Mac type as a pointer to a 8 byte block</value>
+</value-table>
+</p>
+</subsection>
+
+<subsection title="Type representation">
+<p>The types listed above are represented textually within the MimeMap database
+file and as parameters to <reference type="command" name="MimeMap" />. The following
+sections describe each of the types as used in these locations.
+</p>
+
+<category title="Media types">
+<p>
+Media types are supplied in the form 'major/minor'. The format and meaning
+is defined in RFCs 2045-2049 (Request For Comments, the main repository of
+internet standards) and a database of registered media types
+is maintained by IANA (Internet Assigned Numbers Authority).
+</p>
+</category>
+
+<category title="RISC OS type number and name">
+<p>
+Whilst both the type name and number are provided in the MimeMap database
+and as a translation with <reference type="swi" name="MimeMap_Translate" />,
+only the number is retained by the module. This allows the type name to be
+undefined initially and values to be provided when they are available though
+the standard file type naming variables.
+</p>
+<p>
+Type numbers may take any value from &hex;000 to &hex;FFF, as defined by
+the standard file typing system. The special value &hex;1000 is not used
+by the MimeMap module.
+</p>
+</category>
+
+<category title="Dot extensions">
+<p>
+Dot extensions are preceeded by a period ('<code type="format">.</code>')
+character when passed in the *MimeMap command and in the MimeMap file. In
+the MimeMap file, multiple extensions can be supplied indicating that
+multiple extensions are used for a single type.
+</p>
+</category>
+
+<category title="Mac type names">
+<p>
+Mac types are specified in the form: "XXXXxxxx" where XXXX is the filetype
+and xxxx is the vendor type. ? can be used as a single character wildcard.
+\? means a literal ?. \t, \v, \n, \r have their usual meanings (9, 11, 10 and
+13 respectively). \DD (where DD describes 2 hexadecimal digits) represents
+the character with ASCII code &hex;DD.
+</p>
+<p>
+There is a default Mac mapping defined, where "&hex;DDDAcrn" maps to filetype
+&hex;DDD (for hexadecimal digits DDD). This vendor name is registered with Apple.
+Within Mac mappings, the least number of wildcards is matched if multiple
+matches are possible.
+</p>
+<p>
+Mac mappings must be enclosed in double quotes (") when passed to the
+*MimeMap command, and in the MimeMap file.
+</p>
+</category>
+</subsection>
+
+<subsection title="File format">
+<p>
+The MimeMap file is split into 5 fields to provide the type mappings
+database. Entries within the file are searched in the same order in
+which they appear, with wildcards matched last. Fields are tab delimited,
+and consist of :
+</p>
+
+<p>
+<code type="format">
+&lt;mimetype&gt;
+&lt;tab&gt;
+&lt;ro-text&gt;
+&lt;tab&gt;
+&lt;ro-hex&gt;
+&lt;tab&gt;
+&lt;extensions&gt;
+&lt;tab&gt;
+&lt;mactype&gt;
+</code>
+</p>
+
+<p>
+<value-table>
+  <value number="mimetype">Media type in the form 'major/minor'</value>
+  <value number="major">Major component of the media type, or '*' wildcard
+                        to match with any major type.</value>
+  <value number="minor">Minor component of the media type, or '*' wildcard
+                        to match with any minor type.</value>
+  <value number="ro-text">Textual form of the 'ro-hex' field for readability
+                        purposes</value>
+  <value number="ro-hex">Hexadecimal RISC OS type</value>
+  <value number="extensions">File extensions, in the form of a period ('.') prefixed,
+                        tab separated list of file extensions.</value>
+  <value number="mactype">Mac vendor/type string as defined above.</value>
+</value-table>
+</p>
+</subsection>
+</section>
+
+
+<section title="System variables">
+<sysvar-definition name="Inet$MimeMappings"
+                   description="Defines the filename of the MimeMap database file">
+<use>
+<p>This variable names the file which will be used to provide mappings
+information for the MimeMap module. Assigning a value to this variable
+will cause the MimeMap module to re-parse its contents.
+</p>
+<p>
+Usually this variable will take the value <filename>InetDBase:MimeMap</filename>
+during normal use. When the system boots, its value will point to a file
+in ResourceFS which contains a basic file with simple mappings.
+</p>
+</use>
+
+<related>
+<reference type="command" name="ReadMimeMap" />
+<!-- <reference type="swi" name="thingy" /> -->
+<!-- <reference type="vector" name="bingleV" /> -->
+</related>
+
+</sysvar-definition>
+</section>
+
+<section title="SWI calls">
+<swi-definition name="MimeMap_Translate"
+                number="50B00"
+                description="Perform translation between type systems"
+                irqs="undefined"
+                fiqs="enabled"
+                processor-mode="SVC"
+                re-entrant="no">
+
+<entry>
+ <register-use number="0">Input type format</register-use>
+ <register-use number="1">Input type, or pointer to buffer containing type data</register-use>
+ <register-use number="2">Output type format</register-use>
+ <register-use number="3">Pointer to output type buffer of up to 128 bytes, if required by
+   output format</register-use>
+</entry>
+<exit>
+ <register-use number="0-2" state="preserved" />
+ <register-use number="3">Result from conversion, or preserved if output data in
+   buffer</register-use>
+</exit>
+<use>
+<p>
+This SWI is used to access the type mapping database to convert from one type
+format to another. The conversion is performed as cleanly as is possible, returning
+the most relevant match as provided by the mapping database file.
+</p>
+<p>
+If no mapping can be performed, an error will be returned.
+</p>
+
+</use>
+
+<related>
+<reference type="command" name="MimeMap" />
+</related>
+
+</swi-definition>
+
+<swi-definition name="MimeMap_Configure"
+                number="50B01"
+                description="Configure the MimeMap module"
+                irqs="undefined"
+                fiqs="enabled"
+                processor-mode="SVC"
+                re-entrant="no">
+
+<entry>
+ <register-use number="0">Configure type :
+  <value-table>
+   <value number="0">Re-read MimeMap file</value>
+   <value number="other">Reserved</value>
+  </value-table>
+ </register-use>
+</entry>
+<use>
+<p>
+This SWI is used to configure aspects of MimeMap type conversion. At present, only
+a single reason code is provided; that for forcing a re-read of the MimeMap file.
+</p>
+
+<p>
+If the reason code is not recognised, an error is returned.
+</p>
+
+</use>
+
+<related>
+<reference type="command" name="ReadMimeMap" />
+</related>
+
+</swi-definition>
+</section>
+
+
+
+<section title="*Commands">
+<command-definition name="MimeMap"
+                    description="Perform a translation and display the results">
+<syntax>
+ <text>&amp;</text><userreplace>type</userreplace>
+</syntax>
+<syntax>
+ <text>.</text><userreplace>extension</userreplace>
+</syntax>
+<syntax>
+ <userreplace>major</userreplace>/<userreplace>minor</userreplace>
+</syntax>
+<syntax>
+ <userreplace>typename</userreplace>
+</syntax>
+<syntax>
+ <text>"</text><userreplace>mactype</userreplace><text>"</text>
+</syntax>
+
+<!-- parameters -->
+<parameter name="type">Hexadecimal value of RISC OS type</parameter>
+<parameter name="extension">File extension type</parameter>
+<parameter name="major">Major category of media type</parameter>
+<parameter name="minor">Minor type of media type</parameter>
+<parameter name="typename">Textual form of RISC OS type</parameter>
+<parameter name="mactype">Mac type mapping string as used in the configuration file</parameter>
+
+<use>
+<p>
+This command is used to display mappings of types in a human readable manner.
+It is usually used as a aid for debugging the mapping of types. If issued with
+no parameters, it will list all the known types.</p>
+</use>
+
+<example>
+<command>*MimeMap application/octet-stream</command>
+<command>*MimeMap &amp;1AD</command>
+</example>
+
+<related>
+<reference type="swi" name="MimeMap_Translate" />
+</related>
+
+</command-definition>
+
+
+
+<command-definition name="ReadMimeMap"
+                    description="This command causes the MimeMap module to re-read the mappings file.">
+
+<use>
+<p>
+This command is used to force the MimeMap module to re-read the database
+and parse it into internal structures. Although the MimeMap module will
+automatically read the database if the system variable changes, if the
+file is changed the module should be informed through this command.
+</p>
+</use>
+
+<example>
+<command>*ReadMimeMap</command>
+</example>
+
+<related>
+<reference type="sysvar" name="Inet$MimeMappings" />
+</related>
+
+</command-definition>
+</section>
+
+
+</chapter>
+
+
+
+<!-- MetaData -->
+<meta>
+ <maintainer>
+  <email name="RISCOS Ltd" address="developer@riscos.com" />
+ </maintainer>
+ <disclaimer>
+  <import document="http://www.riscos.com/prm/prm-disclaimer.xml" path="root/*" />
+  <import document="http://www.riscos.com/prm/amh-disclaimer.xml" path="root/*" />
+ </disclaimer>
+
+ <history>
+  <revision number="1" author="ROL" title="Extended from ANT release note">
+   <change>Added documentation of Mac file type conversion.</change>
+  </revision>
+  <revision number="2" date="21 Feb 2003" author="ROL" title="Finished file format">
+   <change>The file format is now described by the 'code' element.</change>
+  </revision>
+  <revision number="3" date="21 Mar 2003" author="AMH" title="Fixes">
+   <change>Previous version didn't compile. This one does.</change>
+  </revision>
+  <revision number="4" date="22 Mar 2003" author="ROL" title="Validation">
+   <change>Last changes didn't validate at all</change>
+  </revision>
+ </history>
+</meta>
+</riscos-prm>

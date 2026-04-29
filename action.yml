@@ -33,6 +33,10 @@ inputs:
     description: "PRM-in-XML catalog version"
     required: false
     default: "103"
+  log-directory:
+    description: "Directory for PRM-in-XML log files; empty omits -L"
+    required: false
+    default: ""
   create-contents:
     description: "PRM-in-XML parameter: 'yes' or 'no'; empty uses the tool default"
     required: false
@@ -107,6 +111,7 @@ runs:
         INPUT_PDF_GENERATOR: ${{ inputs.pdf-generator }}
         INPUT_FORMAT: ${{ inputs.format }}
         INPUT_CATALOG: ${{ inputs.catalog }}
+        INPUT_LOG_DIRECTORY: ${{ inputs.log-directory }}
         INPUT_CREATE_CONTENTS: ${{ inputs.create-contents }}
         INPUT_CREATE_BODY: ${{ inputs.create-body }}
         INPUT_CREATE_CONTENTS_TARGET: ${{ inputs.create-contents-target }}

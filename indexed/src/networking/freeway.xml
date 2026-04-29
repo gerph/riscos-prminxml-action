@@ -1,0 +1,537 @@
+<?xml version="1.0"?>
+<!DOCTYPE riscos-prm PUBLIC "-//Gerph//DTD PRM documentation 1.02//EN"
+                            "http://www.movspclr.co.uk/dtd/102/prm.dtd">
+
+<riscos-prm>
+<chapter title="Freeway">
+<section title="Introduction and Overview">
+<p>Freeway is a narrow software layer which maintains information about the
+location of objects on a network, in a decentralised fashion.</p>
+
+<p>Objects are classified according to Freeway Type. At the Freeway level
+the attributes of an object are its name, location, an optional descriptor
+and an optional authentication value. All other characteristics are
+undefined.</p>
+
+<p>Freeway itself only knows about the IP location of objects on the network.
+It is not concerned with how those objects may be accessed, or with any
+specific access control mechanisms. These areas are handled by higher-level
+type-specific application software, as needed. Each type will have a
+'controlling' application.</p>
+
+<p>Freeway types are created by Acorn as required : third parties may
+request a type via the usual defined channel for allocation requests. Each
+type has a unique identifier : for example, if there is a need for software
+to enable 'Bach partitas' to be shared across a network, then an available
+Freeway type number will be allocated by Acorn - e.g. 97=BachPartitas - and
+then the controlling application will be written to 'share' Bach partitas -
+whatever that means.</p>
+
+</section>
+
+<section title="Technical Details">
+
+<subsection title="Type number">
+<p>This is a 16-bit integer identifying a Freeway type.  The following type
+numbers are allocated to Acorn Access+.  (Informal names with no
+significance in software will also be allocated, for easier human reference)
+</p>
+
+<p>
+<value-table head-number="Type" head-value="Informal name">
+<value number="1">Discs</value>
+<value number="2">Printers</value>
+<value number="5">Hosts</value>
+</value-table>
+</p>
+
+<p>In Acorn Access, ShareFS is the controlling application for types Discs
+and Hosts, and !Printers is the controlling application for type Printers.
+</p>
+
+</subsection>
+
+<subsection title="Object name">
+<p>This is the name of an object.</p>
+
+<p>An object name is unique within the set of objects of the same type
+within a site. Object names are terminated by a control character (and will
+return a terminator of zero on output), case independent, alphanumeric
+strings, created by users or application software. Maximum length is 64
+bytes, including the terminator.</p>
+</subsection>
+
+<subsection title="Object descriptor">
+
+<p>This provides extra information about the object.</p>
+
+<p>Its format is undefined at this level - it has significance to
+higher-level application software. Object descriptors are arrays of bytes of
+any value, maximum length 255.</p>
+
+<p>In Acorn Access+ the descriptor for type Discs indicates whether a disc is
+shared protected or unprotected, or as a CDROM or subdirectory, and visible
+or invisible to other desktop users.</p>
+
+<p>The descriptor for type Printers is a 'Printer Type' string.</p>
+
+<p>The descriptor for type Hosts is null.</p>
+</subsection>
+
+<subsection title="Object authentication value">
+
+<p>Objects are either authenticated or unauthenticated.  Authenticated
+objects require an authentication value to be provided before their
+attributes are made visible.  An authentication value is a 32 bit integer.
+The authentication value of zero is reserved and should not be used.</p>
+
+</subsection>
+
+<subsection title="Refresh interval">
+<p>The Freeway software in each computer will periodically re-notify other
+computers about unauthenticated objects which are held by the local machine,
+so that they know that the objects continue to be accessible. This permits,
+for example,  other machines to know when a computer holding Freeway objects
+has been powered down. The  renotification period is called the "refresh
+interval", and is determined by the Freeway software and is typically 30
+seconds.</p>
+
+</subsection>
+
+</section>
+
+<section title="Service calls">
+<service-definition name="FreewayStarting"
+                    number="95"
+                    description="Freeway is starting up">
+<entry>
+ <register-use number="1">service call number</register-use>
+ <register-use number="2">flags :
+  <bitfield-table>
+   <bit number="0-31">Reserved, must be 0</bit>
+  </bitfield-table>
+ </register-use>
+</entry>
+
+<exit>
+ <register-use number="1" state="preserved" />
+</exit>
+
+<use>
+<p>This service is issued when the Freeway module starts up. You may not
+call any Freeway SWIs during this service. If you wish to register
+with the module you should use a transient callback to do so.</p>
+</use>
+
+<related>
+<!-- <reference type="command" name="Com" /> -->
+<!-- <reference type="swi" name="thingy" /> -->
+<!-- <reference type="vector" name="bingleV" /> -->
+<reference type="service" name="FreewayTerminating" />
+</related>
+
+</service-definition>
+
+<service-definition name="FreewayTerminating"
+                    number="96"
+                    description="Freeway is terminating">
+<entry>
+ <register-use number="1">service call number</register-use>
+ <register-use number="2">flags :
+  <bitfield-table>
+   <bit number="0-31">Reserved, must be 0</bit>
+  </bitfield-table>
+ </register-use>
+</entry>
+
+<exit>
+ <register-use number="1" state="preserved" />
+</exit>
+
+<use>
+<p>This service is issued when the Freeway module is killed or shuts down
+for any other reason. You may not call any Freeway SWIs during this service.
+</p>
+</use>
+
+<related>
+<!-- <reference type="command" name="Com" /> -->
+<!-- <reference type="swi" name="thingy" /> -->
+<!-- <reference type="vector" name="bingleV" /> -->
+<reference type="service" name="FreewayStarting" />
+</related>
+
+</service-definition>
+
+</section>
+
+
+<section title="UpCalls">
+<upcall-definition name="Freeway"
+                    number="C"
+                    description="State of Freeway objects has changed.">
+<entry>
+ <register-use number="0">UpCall number</register-use>
+ <register-use number="1">Reason code :
+  <value-table>
+   <value number="0">Object has been added</value>
+   <value number="1">Object has been removed</value>
+   <value number="2">Object attributes have changed</value>
+   <value number="3">Local object deleted by Freeway</value>
+  </value-table>
+ </register-use>
+ <register-use number="2">type number</register-use>
+ <register-use number="3">pointer to object name, 0 terminated</register-use>
+ <register-use number="4">length of object descriptor</register-use>
+ <register-use number="5">pointer to object descriptor</register-use>
+ <register-use number="6">IP address of device which holds or held this
+                          object</register-use>
+
+</entry>
+
+<exit>
+ <register-use number="0-6" state="preserved" />
+</exit>
+
+<use>
+<p>This call warns controlling applications that the named object has been
+added, removed or changed. It is also issued when Freeway has detected that
+the information held about a locally held object is unreliable, (as a result
+of possible temporary name duplication, for example) and has removed it
+unilaterally.  It is issued on callback, and the contents of the supplied
+name and descriptor buffers are guaranteed not to change provided they are
+read from within the application's UpCall handler.</p>
+
+</use>
+
+<related>
+<!-- <reference type="command" name="Com" /> -->
+<reference type="swi" name="Freeway_Write" />
+<!-- <reference type="vector" name="bingleV" /> -->
+</related>
+
+</upcall-definition>
+</section>
+
+
+<section title="SWI calls">
+<swi-definition name="Freeway_Register"
+                number="47A80"
+                description="Register or deregister interest in objects of a given Freeway type."
+                irqs="undefined"
+                fiqs="enabled"
+                processor-mode="SVC"
+                re-entrant="no">
+
+<entry>
+ <register-use number="0">flags :
+  <bitfield-table>
+   <bit number="0">0 - register interest<br />
+                  1 - deregister interest</bit>
+   <bit number="1">0 - interested in unauthenticated objects<br />
+                  1 - interested in authenticated objects</bit>
+   <bit number="2">0 - R3 not valid<br />
+                  1 - R3 is pointer to type 'name' (&lt;= 15 characters, 0
+                      terminated)</bit>
+   <bit number="3-31">reserved - must be set to 0</bit>
+  </bitfield-table>
+ </register-use>
+ <register-use number="1">type number</register-use>
+ <register-use number="2">authentication value if R0 bit 1 is set, otherwise
+                          undefined</register-use>
+ <register-use number="3">pointer to type 'name' if R0 bit 2 is set,
+                          otherwise undefined</register-use>
+</entry>
+<exit>
+ <register-use number="0-3" state="preserved" />
+</exit>
+<use>
+<p>This SWI enables a controlling application to register interest in
+authenticated or unauthenticated objects of a particular Freeway type with
+the local Freeway software, and also to give a 'name' to that type (this
+name is of no significance to the software, it's just for the convenience of
+the human user). Freeway will hold information arriving from the network
+about a remote object only if one or more registrations of interest have
+been made locally in that object's type. If the object is authenticated then
+at least one of those registrations must have included an authentication
+value which matches the object's own. An error is returned if insufficient
+free memory exists.</p>
+
+</use>
+
+<related>
+<!-- <reference type="command" name="Com" /> -->
+<reference type="swi" name="Freeway_Write" />
+<reference type="swi" name="Freeway_Read" />
+<!-- <reference type="vector" name="bingleV" /> -->
+</related>
+
+</swi-definition>
+
+
+
+<swi-definition name="Freeway_Write"
+                number="47A81"
+                description="Add or remove an object of a given type."
+                irqs="undefined"
+                fiqs="enabled"
+                processor-mode="SVC"
+                re-entrant="no">
+
+<entry>
+ <register-use number="0">flags :
+  <bitfield-table>
+   <bit number="0">0 - add object<br />
+                  1 - remove object</bit>
+   <bit number="1">1 - object is authenticated</bit>
+   <bit number="2-31">reserved - must be set to 0</bit>
+  </bitfield-table>
+ </register-use>
+ <register-use number="1">type number</register-use>
+ <register-use number="2">pointer to object name, 0 terminated</register-use>
+ <register-use number="3">length of object descriptor</register-use>
+ <register-use number="4">pointer to object descriptor, or 0 for null
+                          descriptor, or when R0 bit 0 is set</register-use>
+ <register-use number="5">object authentication value if R0 bit 1 is set,
+                          otherwise undefined</register-use>
+</entry>
+<exit>
+ <register-use number="0-5" state="preserved" />
+</exit>
+<use>
+
+<p>This SWI adds or removes a locally held object of a given type. If the
+object is unauthenticated then other computers are notified immediately,
+otherwise notification is withheld until a remote computer requests it.  An
+error is returned if the type number is not known (i.e. if Freeway_Register
+has not been called with this type number), or if an object is added and a
+remote object of the given name and type already exists, or if an object is
+removed and no local object of the given name and type is currently held, or
+if no memory exists to store information about the object.</p>
+
+<p>If R0 bit 0 is clear and the object named is already held as a local
+object, the object's descriptor and authentication value are updated if they
+differ from those passed to the SWI.</p>
+
+<p>N.B.: Controlling applications should be prepared to receive upcall
+UpCall_Freeway, reason code object deleted, referring to any object
+previously added successfully via SWI Freeway_Write. This is to cover the
+possibility of Freeway deciding at any time that the information held about
+an object is unreliable and so deciding to remove it unilaterally, for any
+reason, e.g. if a remote object is created with the same name as a local
+object.</p>
+
+</use>
+
+<related>
+<!-- <reference type="command" name="Com" /> -->
+<reference type="swi" name="Freeway_Read" />
+<!-- <reference type="swi" name="thingy" /> -->
+<!-- <reference type="vector" name="bingleV" /> -->
+</related>
+
+</swi-definition>
+
+
+
+<swi-definition name="Freeway_Read"
+                number="47A82"
+                description="Read attributes of an object."
+                irqs="undefined"
+                fiqs="enabled"
+                processor-mode="SVC"
+                re-entrant="no">
+
+<entry>
+ <register-use number="0">flags :
+  <bitfield-table>
+   <bit number="0">1 - authentication value provided</bit>
+   <bit number="1-31">reserved - must be set to 0</bit>
+  </bitfield-table>
+ </register-use>
+ <register-use number="1">type number</register-use>
+ <register-use number="2">pointer to object name, 0 terminated</register-use>
+ <register-use number="3">length of buffer for object
+                          descriptor</register-use>
+ <register-use number="4">pointer to buffer for object descriptor, or 0 to
+                          read descriptor length</register-use>
+ <register-use number="5">object authentication value if R0 bit 0 is set,
+                          otherwise undefined</register-use>
+</entry>
+<exit>
+ <register-use number="0-2" state="preserved" />
+ <register-use number="3">length of held object descriptor</register-use>
+ <register-use number="4" state="preserved" />
+ <register-use number="5">IP address of computer which holds the
+                          object</register-use>
+</exit>
+<use>
+
+<p>
+This SWI reads information about the attributes of an object. The type
+number and object name must be provided. The SWI returns the IP address of
+the holder, and optionally the descriptor. The length of a held object
+descriptor may be read by setting R4=0 on entry. However in this case there
+is no guarantee that the object attributes will not have changed, or that
+the object will still exist, if the SWI is called again some time later with
+the same object name.  An error is returned if the type number is unknown,
+or the object name is unknown, or if a supplied authentication value does
+not match the object's own authentication value, or if a supplied object
+descriptor buffer is too short;  in this case the actual length is returned
+in R3.</p>
+
+</use>
+
+<related>
+<!-- <reference type="command" name="Com" /> -->
+<!-- <reference type="swi" name="thingy" /> -->
+<reference type="swi" name="Freeway_Write" />
+<!-- <reference type="vector" name="bingleV" /> -->
+</related>
+
+</swi-definition>
+
+
+
+<swi-definition name="Freeway_Enumerate"
+                number="47A83"
+                description="Enumerate objects of a given type."
+                irqs="undefined"
+                fiqs="enabled"
+                processor-mode="SVC"
+                re-entrant="no">
+
+<entry>
+ <register-use number="0">flags :
+  <bitfield-table>
+   <bit number="0">0 - enumerate unauthenticated objects<br />
+                  1 - enumerate authenticated objects</bit>
+   <bit number="1-31">reserved - must be set to 0</bit>
+  </bitfield-table>
+ </register-use>
+ <register-use number="1">type number</register-use>
+ <register-use number="2">length of buffer for object name</register-use>
+ <register-use number="3">pointer to buffer for object name, or 0 to read
+                          length of name</register-use>
+ <register-use number="4">length of buffer for object
+                          descriptor</register-use>
+ <register-use number="5">pointer to buffer for object descriptor, or 0 to
+                          read descriptor length</register-use>
+ <register-use number="6" state="undefined" />
+ <register-use number="7">enumeration context (0 to start)</register-use>
+ <register-use number="8">object authentication value if R0 bit 0 is set,
+                          otherwise undefined</register-use>
+</entry>
+<exit>
+ <register-use number="0" state="preserved" />
+ <register-use number="1" state="preserved" />
+ <register-use number="2">length of held object name, including
+                          terminator</register-use>
+ <register-use number="3" state="preserved" />
+ <register-use number="4">length of held object descriptor</register-use>
+ <register-use number="5" state="preserved" />
+ <register-use number="6">IP address of computer which holds the
+                          object</register-use>
+ <register-use number="7">next enumeration context, or -1 if no
+                          more</register-use>
+ <register-use number="8" state="preserved" />
+
+</exit>
+<use>
+
+<p>
+This SWI allows a controlling application to enumerate currently held
+authenticated or unauthenticated objects of a given type, obtaining their
+names, location IP addresses, and descriptors if present.  If an
+authentication value is provided then only those objects whose actual
+authentication value matches the supplied value are enumerated. If no
+authentication value is supplied then only unauthenticated objects are
+enumerated. The length of the held object name or descriptor may be read
+without filling in buffers by setting R3=0 or R5=0 respectively, on entry.
+However in this case there is no guarantee that the object attributes will
+not have changed, or that the object will still exist, if the SWI is called
+again some time later with the same enumeration reference.
+</p>
+
+<p>
+If R7 is returned -1 then there were no further known objects of that type
+- the object name buffer will not have been filled in, and R6 is undefined.
+</p>
+
+<p>
+An error is returned if the type number is unknown, or if a supplied name or
+descriptor buffer is too short. In the latter cases the actual name and
+descriptor lengths are returned in R2 and R4.</p>
+
+</use>
+
+<related>
+<!-- <reference type="command" name="Com" /> -->
+<reference type="swi" name="Freeway_Read" />
+<!-- <reference type="vector" name="bingleV" /> -->
+</related>
+
+</swi-definition>
+
+
+
+<swi-definition name="Freeway_Status"
+                number="47A84"
+                internal="yes">
+
+</swi-definition>
+
+
+
+<swi-definition name="Freeway_Serial"
+                number="47A85"
+                internal="yes">
+
+</swi-definition>
+
+
+</section>
+
+<section title="*Commands">
+<command-definition name="FWShow"
+                    description="Show currently known unauthenticated objects">
+<syntax>
+</syntax>
+
+<use>
+<p>
+This command is used to show the names and holder IP addresses of all
+unauthenticated objects of all types currently known about by this machine.
+Local objects are indicated via a leading asterisk.
+</p>
+</use>
+
+<example>
+<command>*FWShow</command>
+</example>
+
+<related>
+<!-- <reference type="command" name="Com" /> -->
+<reference type="swi" name="Freeway_Enumerate" />
+<!-- <reference type="vector" name="bingleV" /> -->
+</related>
+
+</command-definition>
+</section>
+
+</chapter>
+
+<!-- MetaData -->
+<meta>
+ <maintainer>
+  <email name="RISCOS Ltd" address="developer@riscos.com" />
+ </maintainer>
+ <disclaimer>
+  <import document="http://www.riscos.com/prm/prm-disclaimer.xml" path="root/*" />
+ </disclaimer>
+
+ <history>
+  <revision number="1" author="ROL" title="Initial version" />
+ </history>
+</meta>
+</riscos-prm>

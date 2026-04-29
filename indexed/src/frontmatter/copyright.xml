@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<!DOCTYPE riscos-prm PUBLIC "-//Gerph//DTD PRM documentation 1.03//EN"
+                            "http://gerph.org/dtd/103/prm.dtd">
+
+<riscos-prm>
+<chapter title="Copyright">
+    <!-- The first section appears at the top of the page -->
+    <section title="Disclaimer">
+        <p>The authors have taken care to produce this document but make no warranty, express or implied as to the accuracy of the information presented here.</p>
+    </section>
+
+    <!-- The second section appears at the bottom of the page -->
+    <section title="Statement">
+        <p>Copyright &copy; 2022, Many Authors</p>
+
+        <p>Copyright statement goes here.</p>
+    </section>
+
+</chapter>
+<meta>
+    <maintainer>
+        <email name="Gerph" address="gerph@gerph.org" />
+    </maintainer>
+</meta>
+</riscos-prm>

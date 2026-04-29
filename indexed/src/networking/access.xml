@@ -1,0 +1,650 @@
+<?xml version="1.0"?>
+<!DOCTYPE riscos-prm PUBLIC "-//Gerph//DTD PRM documentation 1.02//EN"
+                            "http://www.movspclr.co.uk/dtd/102/prm.dtd">
+
+<riscos-prm>
+<chapter title="Access (native file sharing)">
+<section title="Introduction and Overview">
+<p>Acorn Access provides peer-to-peer networking using the TCP/IP protocol, allowing sharing of resources such as discs and printers.</p>
+
+<p>It has been provided as part of the operating system from RISC OS 3.6 onwards.</p>
+
+<subsection title="Access components">
+
+<p>There are three main modules that make up Access: Freeway, ShareFS and RemotePrinterSupport.</p>
+
+<category title="Freeway">
+
+<p>Freeway provides the protocols used by Access so it knows when shared resources are available and can display windows showing them. The interfaces used by Freeway are for internal use only; you must not use them in your own code.</p>
+
+</category>
+
+<category title="ShareFS">
+
+<p>ShareFS is a filing system that is used to share resources, both granting other hosts access to your machine, and vice versa.</p>
+
+<p>ShareFS provides *commands that you can use to share your own filing systems with other Access users. It also provides SWIs that you can use to add a <menuoption>Share</menuoption> option to a Filer's icon bar menu; see the section titled 'Writing Filers so they integrate with Access'<fixme>Should be a reference</fixme>.</p>
+
+</category>
+
+<category title="RemotePrinterSupport">
+
+<p>RemotePrinterSupport provides the support needed to share printers over an Access network.</p>
+
+<p>The interfaces used by RemotePrinterSupport are for internal use only; you must not use them in your own code.</p>
+
+</category>
+
+</subsection>
+
+<subsection title="Writing filing systems so they integrate with Access">
+
+<p>The Access * Commands call standard entry points to filing systems when making them shared. You do not need to take any special steps to make a filing system work with Access; any filing system will work, provided it conforms to the specifications in the chapters 'Writing a filing system'; and (where applicable) 'Writing a FileCore module'.</p>
+
+</subsection>
+
+<subsection title="Writing Filers so they integrate with Access">
+
+<p>For a Filer to integrate with Access, it needs to provide a <menuoption>Share</menuoption> menu option, and take appropriate action when the option is chosen. This is done using a SWI interface to ShareFS.</p>
+
+</subsection>
+
+</section>
+
+<section title="Technical Details">
+<p>How it does stuff, and how you talk to it.</p>
+
+</section>
+
+<section title="Service calls">
+<service-definition name="Sharing"
+                    number="801C8"
+                    description="Directory share status changed">
+<entry>
+ <register-use number="0">Pointer to FS name (ShareFS)</register-use>
+ <register-use number="1">801C8 (service call number)</register-use>
+ <register-use number="2">1 if sharing; 0 if unsharing</register-use>
+ <register-use number="3">Pointer to path being shared</register-use>
+ <register-use number="4">Share name</register-use>
+ <register-use number="5">Private data (depends upon FS name)</register-use>
+</entry>
+
+<exit>
+</exit>
+
+<use>
+<p>This service is issued by systems sharing objects to other machines, and should not be claimed. The private data is dependent upon the FS name. For ShareFS these are:</p>
+
+<p>In R5, the ShareFS flags:</p>
+<p>
+<bitfield-table>
+  <bit number="0">Protected (public access attributes are obeyed)</bit>
+  <bit number="1">Read only</bit>
+  <bit number="2">Hidden (doesn't appear in display)</bit>
+  <bit number="3">Passworded (blank password initially)</bit>
+  <bit number="4">CD ROM (ReadOnly, with a different icon)</bit>
+</bitfield-table>
+</p>
+
+<p>Pin (for authentication), or 0 if not authenticating.</p>
+
+</use>
+
+<related>
+</related>
+
+</service-definition>
+
+<service-definition name="ShareFSStarting"
+                    number="97"
+                    description="ShareFS has initialised">
+<entry>
+ <register-use number="0">Server version * 100</register-use>
+ <register-use number="1">97 (service call number)</register-use>
+</entry>
+
+<exit>
+</exit>
+
+<use>
+<p>This service is issued on a callback after ShareFS has initialised.</p>
+</use>
+
+<related>
+  <reference type="service" name="ShareFSTerminating" />
+</related>
+
+</service-definition>
+
+<service-definition name="ShareFSTerminating"
+                    number="98"
+                    description="ShareFS is about to shut down">
+<entry>
+ <register-use number="0">0</register-use>
+ <register-use number="1">98 (service call number)</register-use>
+</entry>
+
+<exit>
+</exit>
+
+<use>
+<p>This service is issued before ShareFS is shut down. It is not issued prior to ShareFS 3.73.</p>
+</use>
+
+<related>
+  <reference type="service" name="ShareFSStarting" />
+</related>
+
+</service-definition>
+
+</section>
+
+<section title="SWI calls">
+<swi-definition name="ShareFS_CreateShare"
+                number="47AC0"
+                description="Create a new shared directory"
+                irqs="undefined"
+                fiqs="enabled"
+                processor-mode="SVC"
+                re-entrant="no">
+
+<entry>
+ <register-use number="0">Flags <fixme>which are horrid and should be
+reviewed before inclusion</fixme></register-use>
+ <register-use number="1">Pointer to name to share as</register-use>
+ <register-use number="2">Pointer to path to share</register-use>
+ <register-use number="3">Authorisation identifier (encrypted password; not
+documented)</register-use>
+</entry>
+<exit>
+ <register-use number="0-3" state="preserved" />
+</exit>
+<use>
+<p>This SWI shares a directory with the specified attributes. <fixme>Beware
+the flags in R0 are silly, and the API sketchily documented at
+present.</fixme></p>
+
+</use>
+
+<related>
+  <reference type="swi" name="ShareFS_StopShare" />
+</related>
+
+</swi-definition>
+
+<swi-definition name="ShareFS_StopShare"
+                number="47AC1"
+                description="Stops sharing a given disc"
+                irqs="undefined"
+                fiqs="enabled"
+                processor-mode="SVC"
+                re-entrant="no">
+
+<entry>
+ <register-use number="1">Pointer to shared disc name</register-use>
+</entry>
+<exit>
+ <register-use number="1" state="preserved" />
+</exit>
+<use>
+<p>This SWI stops sharing a given disc.</p>
+
+</use>
+
+<related>
+  <reference type="swi" name="ShareFS_CreateShare" />
+</related>
+
+</swi-definition>
+
+<swi-definition name="ShareFS_EnumerateShares"
+                number="47AC2"
+                description="Lists the shares available"
+                irqs="undefined"
+                fiqs="enabled"
+                processor-mode="SVC"
+                re-entrant="no">
+
+<entry>
+ <register-use number="0">0 to match all shares, or flags as follows :
+  <bitfield-table>
+    <bit number="0">Protected (public access attributes are obeyed)</bit>
+    <bit number="1">Read only</bit>
+    <bit number="2">Hidden (doesn't appear in display)</bit>
+    <bit number="3">Sub directory (must be set if b31 set)</bit>
+    <bit number="4">CD ROM (ReadOnly, with a different icon)</bit>
+    <bit number="31">Passworded</bit>
+  </bitfield-table>
+</register-use>
+ <register-use number="4">0 initially, or opaque value returned in
+R4</register-use>
+</entry>
+<exit>
+ <register-use number="0" state="preserved" />
+ <register-use number="1">Pointer to read only shared disc name
+ </register-use>
+ <register-use number="2">Pointer to read only path name
+ </register-use>
+ <register-use number="3">Flags :
+  <bitfield-table>
+    <bit number="0">Protected (public access attributes are obeyed)</bit>
+    <bit number="1">Read only</bit>
+    <bit number="2">Hidden (doesn't appear in display)</bit>
+    <bit number="3">Sub directory (must be set if b31 set)</bit>
+    <bit number="4">CD ROM (ReadOnly, with a different icon)</bit>
+    <bit number="5">Passworded</bit>
+  </bitfield-table>
+ </register-use>
+ <register-use number="4">Next opaque value</register-use>
+</exit>
+<use>
+<p>This SWI is used to list the shares being made available from this
+machine.</p>
+
+</use>
+
+<related>
+<!-- <reference-command name="Com" /> -->
+<!-- <reference-swi name="thingy" /> -->
+<!-- <reference-vector name="bingleV" /> -->
+</related>
+
+</swi-definition>
+
+<swi-definition name="ShareFS_IndentifyShare"
+                number="47AC3"
+                description="Identify whether a directory or share is known to ShareFS"
+                irqs="undefined"
+                fiqs="enabled"
+                processor-mode="SVC"
+                re-entrant="no">
+
+<entry>
+ <register-use number="0">flags :
+  <bitfield-table>
+    <bit number="0">R1 points to a share name,<br />
+                    otherwise R1 points to a path name</bit>
+    <bit number="other" state="reserved" />
+  </bitfield-table>
+ </register-use>
+ <register-use number="1">pointer to share or path name</register-use>
+ <register-use number="2">pointer to buffer for result</register-use>
+ <register-use number="3">length of buffer</register-use>
+</entry>
+<exit>
+ <register-use number="0">flags for share :
+  <bitfield-table>
+    <bit number="0">Protected (public access attributes are obeyed)</bit>
+    <bit number="1">Read only</bit>
+    <bit number="2">Hidden (doesn't appear in display)</bit>
+    <bit number="3">Sub directory (must be set if b31 set)</bit>
+    <bit number="4">CD ROM (ReadOnly, with a different icon)</bit>
+    <bit number="5">Passworded</bit>
+  </bitfield-table>
+ </register-use>
+ <register-use number="1" state="corrupted" />
+ <register-use number="2" state="corrupted" />
+ <register-use number="3">length written to buffer, or -ve size if not enough space.</register-use>
+</exit>
+
+<use>
+<p>This SWI is used to convert from a directory or share name, to a share or
+directory name respectively. If no corresponding share is known, an error is
+returned.
+</p>
+
+</use>
+
+<related>
+<!-- <reference-command name="Com" /> -->
+<!-- <reference-swi name="thingy" /> -->
+<!-- <reference-vector name="bingleV" /> -->
+</related>
+
+</swi-definition>
+</section>
+
+<section title="Wimp Messages">
+<message-definition name="FilerShareDir"
+                    number="408"
+                    description="Request a share options window"
+                    source="Any task"
+                    destination="Broadcast"
+                    >
+<message-table>
+ <message offset="20">Flags:
+   <bitfield-table>
+     <bit number="0">Protected (public access attributes are obeyed)</bit>
+     <bit number="1">Read Only</bit>
+     <bit number="2">Hidden (doesn't appear in display)</bit>
+     <bit number="3">Password (blank password initially)</bit>
+     <bit number="4">CD ROM (ReadOnly, with a different icon)</bit>
+     <bit number="30">Open window at position given</bit>
+     <bit number="31">Open window as a submenu (not implemented)</bit>
+   </bitfield-table>
+ </message>
+ <message offset="24">X position (if relevant)</message>
+ <message offset="28">Y position (if relevant)</message>
+ <message offset="32">Directory to share</message>
+</message-table>
+
+<use>
+<p>This message is sent by an application which wishes to present the user
+with a set of options for sharing a directory. A window will be opened either
+around the pointer, or at the position requested.</p>
+</use>
+
+<related>
+<!-- <reference type="command" name="Com" /> -->
+<!-- <reference type="swi" name="thingy" /> -->
+<!-- <reference type="vector" name="bingleV" /> -->
+</related>
+
+</message-definition>
+</section>
+
+<section title="*Commands">
+<command-definition
+ name="Desktop_ShareFSFiler"
+ description="Command to start up ShareFS Filer">
+
+<syntax>
+</syntax>
+
+<use>
+<p>*Desktop_... commands are used by the Desktop to start up ROM-resident Desktop utilities that appear automatically on the iconbar. However, they are for internal use only, and you should not use them; use <reference type="command" name="Desktop" /> instead.</p>
+</use>
+
+<example>
+<command>Desktop_ShareFSFiler</command>
+</example>
+
+<related>
+  <reference type="command" name="Desktop" />
+</related>
+
+</command-definition>
+
+<command-definition
+ name="Dismount"
+ description="Ensures that it is safe to finish using a remote shared disc">
+<syntax>
+ <userreplace>:disc_name</userreplace>
+</syntax>
+
+<parameter name="disc_name">
+ The name of the remote shared disc.
+</parameter>
+
+<use>
+<p>*Dismount ensures that it is safe to finish using a remote shared disc by closing all its file, unsetting all its directories and libraries, and discarding its local caches. *Dismount is useful before finishing sharing a particular disc. However, the *Shutdown command is usually to be preferred, especially when switching off the computer.</p>
+</use>
+
+<example>
+<command>Dismount :Maths</command>
+</example>
+
+<related>
+  <reference type="command" name="ShutDown" />
+</related>
+
+</command-definition>
+
+<command-definition
+ name="Free"
+ description="Displays the total free space remaining on a remote shared disc">
+<syntax>
+ <userreplace>:disc_name</userreplace>
+</syntax>
+
+<parameter name="disc_name">
+ The name of the remote shared disc
+</parameter>
+
+<use>
+<p>*Free displays the total free space remaining on a remote shared disc.</p>
+</use>
+
+<example>
+ <p>
+  <command>*Free :Maths</command>
+  <systemoutput>Bytes free &hex;00504400 =    5260288</systemoutput>
+  <systemoutput>Bytes used &hex;02413C00 =   37829632</systemoutput>
+ </p>
+</example>
+
+<related>
+</related>
+
+</command-definition>
+
+<command-definition
+ name="FwShow"
+ description="Displays all currently known Freeway objects">
+<syntax>
+</syntax>
+
+<use>
+<p>*FwShow displays all currently known Freeway objects. Local objects are prefixed with a '*'.
+<fixme> Merge this entry to the freeway document ? </fixme>
+</p>
+</use>
+
+<example>
+<p>
+<command>*FwShow</command>
+  <systemoutput>No remote nets</systemoutput>
+  <systemoutput>Type 2:</systemoutput>
+  <systemoutput>Type 5: (Hosts)</systemoutput>
+  <systemoutput>*Name=794148708   Holder=1.97.238.89</systemoutput>
+  <systemoutput> Name=528163826   Holder=1.97.238.93</systemoutput>
+  <systemoutput> Name=873634028   Holder=1.97.238.88</systemoutput>
+  <systemoutput>Type 1: (Discs)</systemoutput>
+  <systemoutput> Name=English     Holder=1.97.238.93</systemoutput>
+  <systemoutput> Name=Science     Holder=1.97.238.88</systemoutput>
+  <systemoutput>*Name=Maths       Holder=1.97.238.89</systemoutput>
+</p>
+</example>
+
+<related>
+</related>
+
+</command-definition>
+
+<command-definition
+ name="Share"
+ description="Makes a local directory available as a shared disc">
+<syntax>
+ <userreplace>directory</userreplace>
+ <optional><userreplace>disc_name</userreplace></optional>
+ <optional><switch name="protected" /></optional>
+ <optional><switch name="cdrom" /></optional>
+ <optional><switch name="noicon" /></optional>
+</syntax>
+
+<parameter name="directory">
+ A valid pathname specifying a directory.
+</parameter>
+<parameter name="disc_name">
+ The name to use for the shared disc.
+</parameter>
+<parameter switch="protected">
+ Causes the directory to be shared protected, rather than the default of unprotected
+</parameter>
+<parameter switch="cdrom">
+ Indicated that the shared directory is on a CD-ROM.
+</parameter>
+<parameter switch="noicon">
+ Prevents an icon appearing for the shared disc.
+</parameter>
+
+<use>
+<p>*Share makes a local directory available as a shared disc. If no name is given for the shared disc, then the name of the directory is used, or - for the root directory - the name of the disc itself.</p>
+
+<p>If the directory is shared unprotected, then remote users have read and write access to all objects beneath it. If the directory is shared protected, then remote users' access to an object beneath it is determined by that object's public access attributes.</p>
+</use>
+
+<example>
+<command>Share ADFS::Maths.$.Maths -protected</command>
+</example>
+
+<related>
+  <reference type="command" name="Shares" />
+  <reference type="command" name="UnShare" />
+</related>
+
+</command-definition>
+
+<command-definition
+ name="ShareFS"
+ description="Selects the Shared Filing System as the current filing system">
+<syntax>
+</syntax>
+
+<use>
+<p>ShareFS selects the Shared Filing System as the filing system for subsequent operations. Remember that it is not neccessary to switch filing systems if you use the full pathnames of objects. For example, you can refer to ADFS objects (on a local disc), when ShareFS is the current filing system.</p>
+</use>
+
+<example>
+<command>ShareFS</command>
+</example>
+
+<related>
+  <reference type="command" name="ADFS" />
+  <reference type="command" name="Net" />
+  <reference type="command" name="RAM" />
+  <reference type="command" name="ResourceFS" />
+</related>
+
+</command-definition>
+
+<command-definition
+ name="ShareFSIcon"
+ description="Adds an icon to the icon bar for a remote shared disc">
+<syntax>
+ <userreplace>disc_name</userreplace>
+</syntax>
+
+<parameter name="disc_name">
+ The name of the remote shared disc
+</parameter>
+
+<use>
+<p>*ShareFSIcon adds an icon to the icon bar for a remote shared disc.</p>
+</use>
+
+<example>
+<command>ShareFSIcon Maths</command>
+</example>
+
+<related>
+</related>
+
+</command-definition>
+
+<command-definition
+ name="ShareFSWindow"
+ description="Changes or reports the size of the ShareFS transmission window">
+<syntax>
+ <optional><userreplace>size</userreplace></optional>
+</syntax>
+
+<parameter name="size">
+ The size of the ShareFS transmission window.
+</parameter>
+
+<use>
+<p>*ShareFSWindow changes the size of the ShareFS transmission window, or - with no parameter - reports its current size. You should not change the size unless you know what you are doing.</p>
+</use>
+
+<example>
+<p>
+<command>*ShareFSWindow</command>
+<systemoutput>Current ShareFS window size: 2</systemoutput>
+</p>
+</example>
+
+<related>
+</related>
+
+</command-definition>
+
+<command-definition
+ name="Shares"
+ description="Shares lists the local directories currently made available as shared discs">
+<syntax>
+</syntax>
+
+<use>
+<p>*Shares lists the local directories currently made available as shared discs, showing the full *Share command with which it was shared.</p>
+</use>
+
+<example>
+<p>
+<command>Shares</command>
+<systemoutput>Share ADFS::Maths.$ Maths -protected</systemoutput>
+</p>
+</example>
+
+<related>
+  <reference type="command" name="Share" />
+</related>
+
+</command-definition>
+
+<command-definition
+ name="UnShare"
+ description="UnShare makes a local directory no longer available as a shared disc">
+<syntax>
+ <userreplace>disc_name</userreplace>
+</syntax>
+
+<parameter name="disc_name">
+ The name of the remote shared disc.
+</parameter>
+
+<use>
+<p>*UnShare makes a local directory no longer available as a shared disc.</p>
+</use>
+
+<example>
+<command>Unshare Maths</command>
+</example>
+
+<related>
+  <reference type="command" name="Share" />
+</related>
+
+</command-definition>
+
+</section>
+
+</chapter>
+
+
+<!-- MetaData -->
+<meta>
+ <maintainer>
+  <email name="Andrew Hill" address="drew.hill@tesco.net" />
+ </maintainer>
+ <disclaimer>
+  <import document="http://www.riscos.com/prm/prm-disclaimer.xml" path="root/*" />
+  <import document="http://www.riscos.com/prm/amh-disclaimer.xml" path="root/*" />
+</disclaimer>
+
+ <history>
+  <revision number="1" date="12 Jun 2002" author="AMH" title="Development release; do not distribute" />
+  <revision number="2" date="14 Oct 2002" author="ROL" title="Little tidying; not ready for distribution">
+   <change>Updated some entry and exit conditions to reflect the processor
+           and interrupt state.</change>
+  </revision>
+  <revision number="3" date="14 Feb 2003" author="ROL" title="Removed redundant section">
+   <change>An error-definition section had been left behind; now removed.</change>
+  </revision>
+  <revision number="4" date="22 Mar 2003" author="ROL" title="Finished SWIs">
+   <change>EnumerateShares and IdentifyShare had been incomplete, this
+           change finishes their documentation.</change>
+  </revision>
+ </history>
+</meta>
+</riscos-prm>

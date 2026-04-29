@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!DOCTYPE riscos-prm PUBLIC "-//Gerph//DTD PRM documentation 1.03//EN"
+                            "http://gerph.org/dtd/103/prm.dtd">
+
+<riscos-prm>
+    <!-- The chapter title is in the center of the page and the section title under it -->
+    <chapter title="RISC OS Networking">
+        <section title="Example manual">
+        </section>
+    </chapter>
+    <meta>
+        <maintainer>
+            <email name="Gerph" address="gerph@gerph.org" />
+        </maintainer>
+    </meta>
+</riscos-prm>

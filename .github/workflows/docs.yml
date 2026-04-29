@@ -67,3 +67,18 @@ jobs:
         with:
           name: prminxml-weasyprint
           path: output/weasyprint
+
+      - name: Build indexed PRM-in-XML documentation
+        uses: ./
+        with:
+          files: indexed/index.xml
+          output: indexed/output
+          format: index
+          pdf-generator: prince
+          log-directory: indexed/logs
+
+      - name: Upload indexed documentation
+        uses: actions/upload-artifact@v7
+        with:
+          name: prminxml-indexed
+          path: indexed/output

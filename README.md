@@ -72,8 +72,9 @@ jobs:
 | `pdf-generator` | `prince` to generate PDFs with Prince XML, `weasyprint` to generate PDFs with WeasyPrint, or `no` to skip PDF generation | `no` |
 | `prince-version` | `default` for the default Prince XML version, or a version number | `default` |
 | `version` | `default` for the default PRM-in-XML version, `local` to use an existing tool, or a version number | `default` |
-| `format` | PRM-in-XML output format, such as `html5+xml`, `html+xml`, `html5`, `html`, `stronghelp`, `command`, or `header` | `html5+xml` |
+| `format` | PRM-in-XML output format, such as `html5+xml`, `html+xml`, `html5`, `html`, `index`, `stronghelp`, `command`, or `header` | `html5+xml` |
 | `catalog` | PRM-in-XML catalog version | `103` |
+| `log-directory` | Directory for PRM-in-XML log files; empty omits `-L` | Tool default |
 | `create-contents` | `yes` or `no`; whether the contents part of the page is generated | Tool default |
 | `create-body` | `yes` or `no`; whether the main body of the page is generated | Tool default |
 | `create-contents-target` | `yes`, `no`, or a frame target name for contents links | Tool default |
@@ -162,6 +163,50 @@ To generate PDFs with WeasyPrint instead:
 
 The action installs WeasyPrint dependencies, generates HTML, then processes the
 generated HTML files into matching `.pdf` files.
+
+### Indexed Documentation
+
+For indexed document sets, set `format: index` and supply exactly one file in
+`files`: the index XML file.
+
+```yaml
+- name: Build indexed documentation
+  uses: gerph/riscos-prminxml-action@v1
+  with:
+    files: indexed/index.xml
+    output: indexed/output
+    format: index
+    pdf-generator: prince
+    log-directory: indexed/logs
+```
+
+The index file controls the source and output locations with its `<dirs>`
+element:
+
+```xml
+<dirs output="output/html"
+      index="output/index"
+      input="src"
+      temp="tmp" />
+```
+
+Those paths are interpreted relative to the directory containing the index
+file. The action therefore runs the indexed build from that directory. The
+`output` input is still required by the action interface, but for `format:
+index` the actual generated HTML location comes from `<dirs output="...">`.
+
+If the index contains `<make-filelist/>`, PRM-in-XML writes `filelist.txt` in
+the generated HTML directory. When `pdf-generator: prince` is selected, the
+action uses that list to create a single PDF:
+
+```sh
+prince -l filelist.txt -o indexed.pdf
+```
+
+Without `<make-filelist/>`, PDFs are generated individually from the HTML files
+in the indexed output directory. WeasyPrint can generate individual PDFs for
+indexed output, but filelist-based single-PDF generation is only supported with
+Prince XML.
 
 ### PRM-in-XML Parameters
 

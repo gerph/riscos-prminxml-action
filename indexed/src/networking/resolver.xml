@@ -1,0 +1,683 @@
+<?xml version="1.0"?>
+<!DOCTYPE riscos-prm PUBLIC "-//Gerph//DTD PRM documentation 1.02//EN"
+                            "http://www.movspclr.co.uk/dtd/102/prm.dtd">
+
+<riscos-prm>
+<chapter title="Resolver">
+<section title="Introduction and Overview">
+<p>
+Internet based applications are required to connect to other hosts
+throughout the world. Location of these hosts is via numeric addresses
+which are determined by human readable names. The process of converting
+from names to addresses is performed by 'Domain Name Servers' (DNS).
+</p>
+
+<p>
+Under RISC OS, communication with DNS is performed by the Resolver
+module.
+</p>
+<p>
+This chapter describes how the Resolver module is configured to use
+DNS, and applications should interact with it.
+</p>
+
+</section>
+
+<section title="Terminology">
+<p>
+The Resolver module provides shared Internet IP address resolution
+facilities to the system.
+</p>
+
+<p>
+The Hosts file is the file InetDBase:Hosts. It is used to initialise the
+local DNS cache with entries.
+</p>
+
+<p>
+DNS servers are queried by the Resolver and the results are cached.
+</p>
+
+<p>
+Application is used within this chapter as a description of the Resolver
+querant, but this may also apply to Modules.
+</p>
+
+</section>
+
+<section title="Technical Details">
+<subsection title="How the Resolver works">
+<p>
+The Resolver functions as follows :
+</p>
+
+<p>
+<list>
+<item><p>The user configures the resolver through serial variables. Usually
+this is performed on machine start up from pre-set values. </p></item>
+
+<item><p>When an address is requested the application requests a lookup from the
+Resolver.</p></item>
+
+<item><p>The Resolver module checks its cached entries and if one exists that
+matches the request, it is returned immediately. Otherwise a request is sent
+to the configured DNS servers. </p></item>
+
+<item><p>The application continues to request a lookup from the Resolver. The
+Resolver continues to try to look up the request until it times out. </p></item>
+
+<item><p>If the request to the DNS servers is satisfied, or a failure is
+returned, the result is returned to the application. </p></item>
+
+<item><p>If the request is not responded to within a period, a failure is
+returned to the application. </p></item>
+
+</list>
+</p>
+
+</subsection>
+
+<subsection title="SWI interface">
+<p>The module provides two interfaces for resolving addresses :
+</p>
+
+<p>
+<list>
+<item><p>
+<reference type="swi" name="Resolver_GetHostByName" /> to provide an
+equivilent operation to that expected by unix applications. This SWI will
+not return until a result or failure has been determined.
+</p></item>
+
+<item><p>
+<reference type="swi" name="Resolver_GetHost"/> to provide a multi-tasking
+version of GetHostByName. This SWI returns a notification that the resolve
+is 'in progress' and should be polled until a result has been received.
+</p></item>
+</list>
+</p>
+
+<p>
+In addition, there is a means for controlling the cache :
+</p>
+
+<p>
+<list>
+<item><p>
+<reference type="swi" name="Resolver_CacheControl" /> can be used to perform
+various operations on the cache.
+</p></item>
+
+</list>
+</p>
+
+</subsection>
+
+
+<subsection title="Host entries">
+<p>
+All results are returned in the form of NetBSD standard 'hostent'
+structures. These structures should be considered to be read only by
+the application.
+</p>
+
+<p>
+A hostent has the following structure :
+</p>
+
+<p>
+<offset-table>
+ <offset number="0">Pointer to host name</offset>
+ <offset number="4">Pointer to 0 terminated list of pointers to aliases for
+                    this host</offset>
+ <offset number="8">Address type (usually AF_INET)</offset>
+ <offset number="12">Address length (4 for AF_INET)</offset>
+ <offset number="16">Pointer to 0 terminated list of addresses</offset>
+</offset-table>
+</p>
+</subsection>
+
+<subsection title="System variables">
+<p>
+The Resolver module uses a number of system variables for its
+configuration. These determine how and where it resolves Internet
+addresses from. In general, these variables are initialised during
+machine startup. They may be modified by the user once the Internet
+stack has started. They will be read when the re-configure call is made
+to the Resolver, either via the Resolver_CacheControl SWI or by the
+*ResolverConfig command. In addition, they will be re-read whenever the
+InetDBaseChanged service is issued.
+</p>
+
+</subsection>
+
+</section>
+
+<section title="System variables">
+<sysvar-definition name="Inet$Resolvers"
+                   description="Lists the DNS servers that should be queried">
+<use>
+<p>This variable lists the DNS servers that will be queried during
+resolution requestes. It consists of a space separated list of dotted IP
+addresses. Up to three addresses may be supplied. Addresses will be queried
+in the order supplied.</p>
+
+</use>
+
+<related>
+<!-- <reference type="command" name="Com" /> -->
+<!-- <reference type="swi" name="thingy" /> -->
+<!-- <reference type="vector" name="bingleV" /> -->
+</related>
+
+</sysvar-definition>
+
+<sysvar-definition name="Inet$Hostname"
+                   description="Local name of this host">
+<use>
+<p>This variable gives the local name of this host. Attempts to set this
+variable to a fully qualified hostname will result in it and
+<sysvar>Inet$LocalDomain</sysvar> being set to the correct values.
+</p>
+
+</use>
+
+<related>
+<reference type="sysvar" name="Inet$LocalDomain" />
+<!-- <reference type="swi" name="thingy" /> -->
+<!-- <reference type="vector" name="bingleV" /> -->
+</related>
+
+</sysvar-definition>
+
+<sysvar-definition name="Inet$LocalDomain"
+                   description="Local domain name">
+<use>
+<p>This variable gives the local domain name for the network this host is
+connected to. Together with <sysvar>Inet$Hostname</sysvar>, this provides
+the name of this host on a network. It may be that this host name is
+not visible from certain networks due to firewalls, proxying and other
+network-specific issues.
+</p>
+
+</use>
+
+<related>
+<reference type="sysvar" name="Inet$Hostname" />
+<!-- <reference type="swi" name="thingy" /> -->
+<!-- <reference type="vector" name="bingleV" /> -->
+</related>
+
+</sysvar-definition>
+
+<sysvar-definition name="Inet$SearchDomains"
+                   description="List of domains to use search hostnames in">
+<use>
+<p>This variable describes the domains which should be appended to failed
+host lookups in an attempt to resolve them.
+</p>
+
+<p>After being modified, the Resolver module must be notified by requesting
+it re-read its configuration.</p>
+
+</use>
+
+<related>
+<reference type="sysvar" name="Inet$LocalDomain" />
+<reference type="command" name="ResolverConfig" />
+<reference type="swi" name="Resolver_CacheControl" />
+</related>
+
+</sysvar-definition>
+
+<sysvar-definition name="Inet$ResolverRetries"
+                   description="Number of times that the resolver should re-try resolving">
+<use>
+<p>This variable should be set to the number of retries that the resolve
+should made. During resolution, the Resolver may get no response to its
+requests. This may be due to network bandwidth limitations, or a busy
+server. The number of retries may be configured to allow for greater
+numbers of retries if necessary.
+</p>
+
+<p>After being modified, the Resolver module must be notified by requesting
+it re-read its configuration.</p>
+
+</use>
+
+<related>
+<reference type="sysvar" name="Inet$ResolverDelay" />
+<reference type="command" name="ResolverConfig" />
+<reference type="swi" name="Resolver_CacheControl"/>
+</related>
+
+</sysvar-definition>
+
+<sysvar-definition name="Inet$ResolverDelay"
+                   description="Delay between resolution requests">
+<use>
+<p>This variable should be set to the number of seconds that should be
+waited between resolution requests. During resolution, the Resolver may get
+no response to its requests. This may be due to network bandwidth
+limitations, or a busy server. The delay between retries may be configured
+to allow for faster requests (if the server is known to accept such requests
+- consult the server operators) or longer delays if the server is known to
+be under load.
+</p>
+
+<p>After being modified, the Resolver module must be notified by requesting
+it re-read its configuration.</p>
+
+</use>
+
+<related>
+<reference type="sysvar" name="Inet$ResolverRetries" />
+<reference type="command" name="ResolverConfig" />
+<reference type="swi" name="Resolver_CacheControl"/>
+</related>
+
+</sysvar-definition>
+
+<sysvar-definition name="Inet$ResolverServer"
+                   description="Determines whether the DNS relay is active">
+<use>
+<p>This variable should be set to '1' to configure the DNS relay to be
+active, or '0' to deactivate it.
+</p>
+
+<p>After being modified, the Resolver module must be notified by requesting
+it re-read its configuration.</p>
+
+</use>
+
+<related>
+<reference type="command" name="ResolverConfig" />
+<reference type="swi" name="Resolver_CacheControl"/>
+</related>
+
+</sysvar-definition>
+
+</section>
+
+<section title="Service calls">
+<service-definition name="InternetVars"
+                    number="80C41"
+                    description="Notification of variable changes">
+<entry>
+ <register-use number="0">reason code :
+  <value-table>
+   <value number="0">
+    <reference type="service" name="InternetVars" reason="0" use-description="yes" /></value>
+   <value number="1">
+    <reference type="service" name="InternetVars" reason="1" use-description="yes" /></value>
+   <value number="other">Reserved</value>
+  </value-table>
+ </register-use>
+ <register-use number="1">service call number</register-use>
+</entry>
+
+<exit>
+ <register-use number="0" state="preserved" />
+ <register-use number="1" state="preserved" />
+</exit>
+
+<use>
+<p>This service is issued by the Resolver module when certain variables
+that it monitors change. Other components may use the service as an
+indication that their configuration has changed.</p>
+
+</use>
+
+<related>
+<!-- <reference type="sysvar" name="Com" /> -->
+<!-- <reference type="swi" name="thingy" /> -->
+<!-- <reference type="vector" name="bingleV" /> -->
+</related>
+
+</service-definition>
+
+<service-definition name="InternetVars"
+                    number="80C41"
+                    reason="0"
+                    reasonname="DatabaseChanged"
+                    description="Change in the location of the internet database">
+<entry>
+ <register-use number="0">0 (reason code)</register-use>
+ <register-use number="1">service call number</register-use>
+</entry>
+
+<exit>
+ <register-use number="0" state="preserved" />
+ <register-use number="1" state="preserved" />
+</exit>
+
+<use>
+<p>This service is issued by the Resolver module when
+<sysvar>InetDBase$Path</sysvar> is changed. Components which hold resources
+in the database should re-read those resources.
+</p>
+
+</use>
+
+<related>
+<reference type="service" name="InternetVars" />
+<!-- <reference type="swi" name="thingy" /> -->
+<!-- <reference type="vector" name="bingleV" /> -->
+</related>
+
+</service-definition>
+
+<service-definition name="InternetVars"
+                    number="80C41"
+                    reason="1"
+                    reasonname="HostnameChanged"
+                    description="Change in the name of this host">
+<entry>
+ <register-use number="0">1 (reason code)</register-use>
+ <register-use number="1">service call number</register-use>
+</entry>
+
+<exit>
+ <register-use number="0" state="preserved" />
+ <register-use number="1" state="preserved" />
+</exit>
+
+<use>
+<p>This service is issued by the Resolver module when
+<reference type="sysvar" name="Inet$Hostname" /> is changed. Components
+which use the hostname to refer to objects should update their concept
+of the local name. If complex operations are required, clients should
+schedule a transient callback.
+</p>
+
+</use>
+
+<related>
+<reference type="service" name="InternetVars" />
+<reference type="sysvar" name="Inet$Hostname" />
+<!-- <reference type="swi" name="thingy" /> -->
+</related>
+
+</service-definition>
+
+</section>
+
+<section title="SWI calls">
+<swi-definition name="Resolver_GetHostByName"
+                number="46000"
+                description="Initiate a non-blocking name resolution"
+                irqs="undefined"
+                fiqs="enabled"
+                processor-mode="SVC"
+                re-entrant="no">
+
+<entry>
+ <register-use number="1">Pointer to host name string</register-use>
+</entry>
+<exit>
+ <register-use number="0">Internet error number, indicating the state of the lookup :
+  <value-table>
+   <value number="0">Resolve successful</value>
+   <value number="-1">Host was not found</value>
+   <value number="-2">Remove request failure, eg no response from servers</value>
+   <value number="36">Resolve in progress</value>
+   <value number="other">Standard internet error numbers</value>
+  </value-table>
+ </register-use>
+ <register-use number="1">Pointer to 'hostent' structure if successful, or 0
+                          if failed</register-use>
+</exit>
+<use>
+<p>
+This SWI is provided primarily for backwards compatibility, since
+new network applications can use the more flexible
+<reference type="swi" name="Resolver_GetHost" />.
+</p>
+
+<p>
+The main use of this SWI is by the simple ports of unix applications
+using the gethostbyname() function call.
+</p>
+
+<p>Although this SWI is marked as non-reentrant, it is expected that this
+SWI be preempted by OS_UpCall 6 when used in a TaskWindow. This is a safe
+operation.</p>
+
+</use>
+
+<related>
+<reference type="swi" name="Resolver_GetHost" />
+<!-- <reference type="swi" name="thingy" /> -->
+<!-- <reference type="vector" name="bingleV" /> -->
+</related>
+
+</swi-definition>
+
+
+<swi-definition name="Resolver_GetHost"
+                number="46001"
+                description="Initiate a non-blocking name resolution"
+                irqs="undefined"
+                fiqs="enabled"
+                processor-mode="SVC"
+                re-entrant="no">
+
+<entry>
+ <register-use number="1">Pointer to host name string</register-use>
+</entry>
+<exit>
+ <register-use number="0">Internet error number, indicating the state of the lookup :
+  <value-table>
+   <value number="0">Resolve successful</value>
+   <value number="-1">Host was not found</value>
+   <value number="-2">Remove request failure, eg no response from servers</value>
+   <value number="36">Resolve in progress</value>
+   <value number="other">Standard internet error numbers</value>
+  </value-table>
+ </register-use>
+ <register-use number="1">Pointer to 'hostent' structure if successful, or 0
+                          if failed</register-use>
+</exit>
+<use>
+<p>
+This SWI provides a DNS resolution facility that runs in the
+background (unlike
+<reference type="swi" name="Resolver_GetHostByName" />).
+Applications must poll the Resolver module for the state of the
+resolution.
+</p>
+
+<p>
+If the hostname is a valid cache item, or present in the hosts file
+on disc, it is returned immediately in R1, with R0 set to 0.
+</p>
+
+<p>
+If the hostname is a cache item, marked as failed, then R1 is
+set to 0 and R0 is either -1 (host not found), or -2
+(remote failure. eg, configured resolver didn't respond).
+</p>
+
+<p>
+If the hostname is a cache item, marked as pending, then R1 is set to 0
+and R0 is EINPROGRESS (36 decimal). Items are marked as pending when a
+remote resolver lookup is in progress. The calling program is expected
+to periodically call Resolver_GetHost until a valid hostent is returned,
+or an error condition occurs.
+</p>
+
+<p>
+Because name lookups can take anything up to 20 seconds or so, it is
+important to be able to give feedback to the user on the status of
+the lookup, as well as giving the foreground application time to
+perform other tasks.
+</p>
+
+<p>
+Cache sweeps occur periodically - pending items are marked as
+failed (remote failure) after a short period, failed items are
+removed after a longer period, and valid items are removed after
+24 hours.
+</p>
+
+<p>
+If there is a configuration error (such as
+<reference type="sysvar" name="Inet$Resolvers" /> not being
+set), then a RISC OS error block pointer is returned in R0, and
+the V flag is set on exit.
+</p>
+
+</use>
+
+<example>
+<p>
+The calling program might run something like:
+</p>
+
+<p>
+<extended-example>
+REM 'EINPROGRESS' error number is 36 decimal
+REPEAT
+  SYS "Resolver_GetHost","host.net" TO status,hostent;flags
+  error = (flags AND 1) == 1
+  REM Perhaps inform user of the state of this lookup
+UNTIL (error) OR (status != EINPROGRESS)
+REM hostent is a valid pointer, or 0
+</extended-example>
+</p>
+
+</example>
+
+<related>
+<reference type="swi" name="Resolver_GetHostByName" />
+<!-- <reference type="swi" name="thingy" /> -->
+<!-- <reference type="vector" name="bingleV" /> -->
+</related>
+
+</swi-definition>
+
+
+<swi-definition name="Resolver_GetCache"
+                number="46002"
+                description="Request a details of the Resolver cache"
+                irqs="undefined"
+                fiqs="enabled"
+                processor-mode="SVC"
+                re-entrant="no"
+                internal="yes"
+                >
+
+<entry>
+</entry>
+<exit>
+</exit>
+<use>
+<p>
+<fixme>Not documented; not really necessary, but may be useful</fixme>
+</p>
+</use>
+
+<related>
+<reference type="swi" name="Resolver_CacheControl" />
+<!-- <reference type="swi" name="thingy" /> -->
+<!-- <reference type="vector" name="bingleV" /> -->
+</related>
+
+</swi-definition>
+
+
+<swi-definition name="Resolver_CacheControl"
+                number="46003"
+                description="Perform operations on the Resolver cache"
+                irqs="undefined"
+                fiqs="enabled"
+                processor-mode="SVC"
+                re-entrant="no"
+                >
+
+<entry>
+ <register-use number="0">Reason code :
+  <value-table>
+   <value number="0">Flush cache of failed lookups</value>
+   <value number="1">Flush cache of all items</value>
+   <value number="2">Flush cache of hosts file items</value>
+   <value number="3">Re-read configuration</value>
+   <value number="8">Disable caching of failed lookups</value>
+   <value number="9">Enable caching of failed lookups</value>
+   <value number="other">Reserved</value>
+  </value-table>
+ </register-use>
+</entry>
+<exit>
+ <register-use number="0" state="preserved" />
+</exit>
+<use>
+<p>
+This SWI is provided to allow a calling application to control
+the Resolver cache in a limited way. Currently, the only reason
+codes supported are to force flushes of certain cache entries,
+and dis(abling) of the caching of lookups that fail.
+</p>
+
+<p>
+Caching of lookup failures is disabled by default. You might wish
+to enable the caching of lookup failures if you are sure that
+any failures are genuine bad host errors and not due to packet
+loss, remote server timeouts, etc.
+</p>
+
+</use>
+
+<related>
+<!-- <reference type="swi" name="Resolver_CacheControl" /> -->
+<reference type="command" name="ResolverConfig" />
+<!-- <reference type="vector" name="bingleV" /> -->
+</related>
+
+</swi-definition>
+</section>
+
+<section title="*Commands">
+<command-definition name="ResolverConfig"
+                    description="Request that the resolver re-read its configuration">
+<syntax>
+</syntax>
+
+<use>
+<p>This command is used to request that the Resolver re-read the system
+variables for configuration.</p>
+</use>
+
+<example>
+<command>*ResolverConfig</command>
+</example>
+
+<related>
+<reference type="swi" name="Resolver_CacheControl" />
+<!-- <reference type="swi" name="thingy" /> -->
+<!-- <reference type="vector" name="bingleV" /> -->
+</related>
+
+</command-definition>
+</section>
+
+</chapter>
+
+<!-- MetaData -->
+<meta>
+ <maintainer>
+  <email name="RISCOS Ltd" address="developer@riscos.com" />
+ </maintainer>
+ <disclaimer>
+  <import document="http://www.riscos.com/prm/prm-disclaimer.xml" path="root/*" />
+ </disclaimer>
+
+ <history>
+  <revision number="1" author="ROL" title="Initial version" />
+  <revision number="2" author="ROL" date="22 Jan 2003" title="Corrected unfinished sentence">
+   <change>Documentation for Service_InternetVars had an unfinished sentence
+           about clients using it.</change>
+  </revision>
+ </history>
+</meta>
+</riscos-prm>
