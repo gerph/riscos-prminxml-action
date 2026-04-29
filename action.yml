@@ -1,4 +1,4 @@
-name: "PRM-in-XML builder"
+name: "RISC OS PRM-in-XML builder"
 description: "Build PRM-in-XML documentation into HTML and optionally PDF."
 author: Charles Ferguson
 
