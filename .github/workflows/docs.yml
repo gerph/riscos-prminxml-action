@@ -26,3 +26,16 @@ jobs:
         with:
           name: prminxml-html
           path: output/html
+
+      - name: Build PRM-in-XML documentation with Prince PDF
+        uses: ./
+        with:
+          files: rtc.xml
+          output: output/pdf
+          pdf-generator: prince
+
+      - name: Upload generated PDF documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: prminxml-pdf
+          path: output/pdf
