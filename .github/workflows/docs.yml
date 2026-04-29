@@ -1,0 +1,28 @@
+name: PRM-in-XML documentation
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out sources
+        uses: actions/checkout@v6
+
+      - name: Build PRM-in-XML documentation
+        uses: ./
+        with:
+          files: rtc.xml
+          output: output/html
+
+      - name: Upload generated documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: prminxml-html
+          path: output/html
