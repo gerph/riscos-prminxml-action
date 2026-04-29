@@ -51,7 +51,7 @@ jobs:
       - name: Upload modern documentation
         uses: actions/upload-artifact@v7
         with:
-          name: modern
+          name: prminxml-modern
           path: output/modern
 
       - name: Build PRM-in-XML documentation with WeasyPrint PDF
