@@ -36,8 +36,10 @@ PRM-in-XML output can overwrite files with matching names.
 Your repository must contain PRM-in-XML documents, such as `rtc.xml`.
 
 The action is intended for Linux GitHub-hosted runners such as
-`ubuntu-latest`. It installs packages with the system package manager, so the
-runner must allow normal GitHub Actions package installation.
+`ubuntu-24.04`. Do not use `ubuntu-latest`, as it now selects Ubuntu 26.04,
+which is not supported (Prince XML does not work there). The action installs
+packages with the system package manager, so the runner must allow normal
+GitHub Actions package installation.
 
 PDF output is only enabled when `pdf-generator` is set to `prince` or
 `weasyprint`. If you request Prince XML, you confirm that your use of Prince XML
@@ -51,9 +53,9 @@ version:
 ```yaml
 jobs:
   docs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Build PRM-in-XML documentation
         uses: gerph/riscos-prminxml-action@v1
@@ -102,9 +104,9 @@ on: [push, pull_request]
 
 jobs:
   docs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Build documentation
         uses: gerph/riscos-prminxml-action@v1
