@@ -9,7 +9,11 @@ permissions:
 
 jobs:
   docs:
-    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-26.04]
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Check out sources
@@ -24,7 +28,7 @@ jobs:
       - name: Upload generated documentation
         uses: actions/upload-artifact@v7
         with:
-          name: prminxml-html
+          name: prminxml-html-${{ matrix.os }}
           path: output/html
 
       - name: Build PRM-in-XML documentation with Prince PDF
@@ -37,7 +41,7 @@ jobs:
       - name: Upload generated PDF documentation
         uses: actions/upload-artifact@v7
         with:
-          name: prminxml-pdf
+          name: prminxml-pdf-${{ matrix.os }}
           path: output/pdf
 
       - name: Build modern PRM-in-XML documentation with Prince PDF
@@ -51,7 +55,7 @@ jobs:
       - name: Upload modern documentation
         uses: actions/upload-artifact@v7
         with:
-          name: prminxml-modern
+          name: prminxml-modern-${{ matrix.os }}
           path: output/modern
 
       - name: Build PRM-in-XML documentation with WeasyPrint PDF
@@ -65,7 +69,7 @@ jobs:
       - name: Upload generated WeasyPrint documentation
         uses: actions/upload-artifact@v7
         with:
-          name: prminxml-weasyprint
+          name: prminxml-weasyprint-${{ matrix.os }}
           path: output/weasyprint
 
       - name: Build indexed PRM-in-XML documentation
@@ -80,5 +84,5 @@ jobs:
       - name: Upload indexed documentation
         uses: actions/upload-artifact@v7
         with:
-          name: prminxml-indexed
+          name: prminxml-indexed-${{ matrix.os }}
           path: indexed/output
