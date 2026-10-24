@@ -36,10 +36,11 @@ PRM-in-XML output can overwrite files with matching names.
 Your repository must contain PRM-in-XML documents, such as `rtc.xml`.
 
 The action is intended for Linux GitHub-hosted runners such as
-`ubuntu-24.04`. Do not use `ubuntu-latest`, as it now selects Ubuntu 26.04,
-which is not supported (Prince XML does not work there). The action installs
-packages with the system package manager, so the runner must allow normal
-GitHub Actions package installation.
+`ubuntu-24.04` and `ubuntu-26.04`. On Ubuntu 26.04 the default Prince XML
+version (15.4.1) has no build, so the action installs Prince XML 17 instead
+unless you give `prince-version` explicitly. The action installs packages with
+the system package manager, so the runner must allow normal GitHub Actions
+package installation.
 
 PDF output is only enabled when `pdf-generator` is set to `prince` or
 `weasyprint`. If you request Prince XML, you confirm that your use of Prince XML

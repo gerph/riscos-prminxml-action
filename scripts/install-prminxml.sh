@@ -7,7 +7,10 @@ PRINCE_BASE_VERSION="15.4"
 
 PRMINXML_VERSION="${INPUT_VERSION:-default}"
 PRINCE_VERSION="${INPUT_PRINCE_VERSION:-default}"
+PRINCE_VERSION_REQUESTED="$PRINCE_VERSION"
 PDF_GENERATOR="${INPUT_PDF_GENERATOR:-no}"
+# Prince XML 17 is the first version published for Ubuntu 26.04
+PRINCE_UBUNTU2604_VERSION="17"
 
 if [ "$PRMINXML_VERSION" = "default" ]; then
     PRMINXML_VERSION="$DEFAULT_PRMINXML_VERSION"
@@ -97,6 +100,19 @@ install_package() {
     fi
 }
 
+install_package_one_of() {
+    # Install the first of the named packages that the package manager has;
+    # package names differ between releases (for example the t64 renames).
+    for package_name in "$@"; do
+        echo "+++ Obtaining ${package_name}"
+        if run_root env DEBIAN_FRONTEND=noninteractive apt-get install -y "$package_name"; then
+            return
+        fi
+    done
+    echo "None of these packages could be installed: $*" >&2
+    exit 1
+}
+
 download() {
     url="$1"
     output="$2"
@@ -148,6 +164,25 @@ install_prince_libraries() {
         return
     fi
 
+    if [ "$DISTRO" = "ubuntu" ] && [[ "$DISTRO_RELEASE" =~ ^26 ]]; then
+        # The libraries that Prince XML 17 links against on Ubuntu 26.04
+        update_packages
+        install_package_one_of libtiff6
+        install_package_one_of libgif7
+        install_package_one_of libpng16-16t64 libpng16-16
+        install_package_one_of liblcms2-2
+        install_package_one_of libcurl4t64 libcurl4
+        install_package_one_of libfontconfig1
+        install_package_one_of libfreetype6
+        install_package_one_of libjpeg-turbo8 libjpeg8
+        install_package_one_of libwebp7
+        install_package_one_of libwebpdemux2
+        install_package_one_of libavif16
+        install_package_one_of libaom3
+        install_package_one_of libxml2-16 libxml2
+        return
+    fi
+
     if { [ "$DISTRO" = "ubuntu" ] && [[ "$DISTRO_RELEASE" =~ 24 ]]; } || \
        { [ "$DISTRO" = "debian" ] && [[ "$DISTRO_RELEASE" =~ 12 ]]; }; then
         install_package libtiff6
@@ -182,6 +217,13 @@ install_prince() {
 
     if command -v prince >/dev/null 2>&1; then
         return
+    fi
+
+    if [ "$DISTRO" = "ubuntu" ] && [[ "$DISTRO_RELEASE" =~ ^26 ]] && \
+       [ "$PRINCE_VERSION_REQUESTED" = "default" ]; then
+        # The default Prince XML has no build for Ubuntu 26.04
+        PRINCE_VERSION="$PRINCE_UBUNTU2604_VERSION"
+        PRINCE_BASE_VERSION="$PRINCE_UBUNTU2604_VERSION"
     fi
 
     echo "+++ Obtaining Prince XML ${PRINCE_VERSION}"
@@ -234,6 +276,11 @@ install_prince() {
     export PATH="${prince_root}/bin:$PATH"
     echo "${prince_root}/bin" >> "$GITHUB_PATH"
     install_prince_libraries
+    if [ "$SYSTEM" = "Linux" ]; then
+        # Name any shared library that is still missing, rather than leaving
+        # the failure to the first run of prince.
+        ldd "${prince_root}/lib/prince/bin/prince" | grep 'not found' || true
+    fi
     prince --version >/dev/null
 }
 
